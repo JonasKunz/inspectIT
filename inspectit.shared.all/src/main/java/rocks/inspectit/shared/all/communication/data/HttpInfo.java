@@ -10,14 +10,16 @@ import javax.persistence.Id;
 import javax.persistence.Index;
 import javax.persistence.Table;
 
+import org.codehaus.jackson.annotate.JsonIgnore;
+
 import rocks.inspectit.shared.all.cmr.cache.IObjectSizes;
 import rocks.inspectit.shared.all.communication.Sizeable;
 
 /**
  * Entity for holding HTTP info information.
- * 
+ *
  * @author Ivan Senic
- * 
+ *
  */
 @Entity
 @Table(indexes = { @Index(name = "uri_idx", columnList = "uri"), @Index(name = "tag_idx", columnList = "inspectItTaggingHeaderValue") })
@@ -69,7 +71,7 @@ public class HttpInfo implements Sizeable, Serializable {
 
 	/**
 	 * Secondary constructor.
-	 * 
+	 *
 	 * @param uri
 	 *            The uri.
 	 * @param requestMethod
@@ -85,7 +87,7 @@ public class HttpInfo implements Sizeable, Serializable {
 
 	/**
 	 * Gets {@link #id}.
-	 * 
+	 *
 	 * @return {@link #id}
 	 */
 	public long getId() {
@@ -94,7 +96,7 @@ public class HttpInfo implements Sizeable, Serializable {
 
 	/**
 	 * Sets {@link #id}.
-	 * 
+	 *
 	 * @param id
 	 *            New value for {@link #id}
 	 */
@@ -104,16 +106,17 @@ public class HttpInfo implements Sizeable, Serializable {
 
 	/**
 	 * Returns if the URI is defined for this instance.
-	 * 
+	 *
 	 * @return True if {@link #uri} is not null and is different from {@value HttpInfo#UNDEFINED}.
 	 */
+	@JsonIgnore
 	public boolean isUriDefined() {
 		return uri != null && !HttpInfo.UNDEFINED.equals(uri);
 	}
 
 	/**
 	 * Gets {@link #uri}.
-	 * 
+	 *
 	 * @return {@link #uri}
 	 */
 	public String getUri() {
@@ -122,7 +125,7 @@ public class HttpInfo implements Sizeable, Serializable {
 
 	/**
 	 * Sets {@link #uri}.
-	 * 
+	 *
 	 * @param uri
 	 *            New value for {@link #uri}
 	 */
@@ -138,7 +141,7 @@ public class HttpInfo implements Sizeable, Serializable {
 
 	/**
 	 * Gets {@link #requestMethod}.
-	 * 
+	 *
 	 * @return {@link #requestMethod}
 	 */
 	public String getRequestMethod() {
@@ -147,7 +150,7 @@ public class HttpInfo implements Sizeable, Serializable {
 
 	/**
 	 * Sets {@link #requestMethod}.
-	 * 
+	 *
 	 * @param requestMethod
 	 *            New value for {@link #requestMethod}
 	 */
@@ -157,7 +160,7 @@ public class HttpInfo implements Sizeable, Serializable {
 
 	/**
 	 * Checks if this data has the inspectIT tagging header set.
-	 * 
+	 *
 	 * @return if this data has the inspectIT tagging header set.
 	 */
 	public boolean hasInspectItTaggingHeader() {
@@ -166,7 +169,7 @@ public class HttpInfo implements Sizeable, Serializable {
 
 	/**
 	 * Gets {@link #inspectItTaggingHeaderValue}.
-	 * 
+	 *
 	 * @return {@link #inspectItTaggingHeaderValue}
 	 */
 	public String getInspectItTaggingHeaderValue() {
@@ -175,7 +178,7 @@ public class HttpInfo implements Sizeable, Serializable {
 
 	/**
 	 * Sets {@link #inspectItTaggingHeaderValue}.
-	 * 
+	 *
 	 * @param inspectItTaggingHeaderValue
 	 *            New value for {@link #inspectItTaggingHeaderValue}
 	 */

@@ -14,17 +14,20 @@ import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.validation.constraints.NotNull;
 
+import org.codehaus.jackson.annotate.JsonTypeInfo;
+
 import rocks.inspectit.shared.cs.storage.label.type.AbstractStorageLabelType;
 
 /**
  * The abstract class for all labels.
- * 
+ *
  * @author Ivan Senic
- * 
+ *
  * @param <V>
  *            Type of value hold by label.
  */
 @Entity
+@JsonTypeInfo(use = JsonTypeInfo.Id.MINIMAL_CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
 @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
 @NamedQueries({ @NamedQuery(name = AbstractStorageLabel.FIND_ALL, query = "SELECT l FROM AbstractStorageLabel l"),
 		@NamedQuery(name = AbstractStorageLabel.FIND_BY_LABEL_TYPE, query = "SELECT l FROM AbstractStorageLabel l WHERE l.storageLabelType=:storageLabelType") })
@@ -67,7 +70,7 @@ public abstract class AbstractStorageLabel<V> implements Serializable, Comparabl
 
 	/**
 	 * Default constructor.
-	 * 
+	 *
 	 * @param storageLabelType
 	 *            {@link AbstractStorageLabelType}
 	 */
@@ -77,14 +80,14 @@ public abstract class AbstractStorageLabel<V> implements Serializable, Comparabl
 
 	/**
 	 * Returns object that represent the value of label.
-	 * 
+	 *
 	 * @return Returns object that represent the value of label.
 	 */
 	public abstract V getValue();
 
 	/**
 	 * Sets the value. implementing classes need to perform all checks for the value to be accepted.
-	 * 
+	 *
 	 * @param value
 	 *            New value.
 	 */
@@ -92,14 +95,14 @@ public abstract class AbstractStorageLabel<V> implements Serializable, Comparabl
 
 	/**
 	 * Returns the formated value of the label.
-	 * 
+	 *
 	 * @return Returns the formated value of the label.
 	 */
 	public abstract String getFormatedValue();
 
 	/**
 	 * Gets {@link #id}.
-	 * 
+	 *
 	 * @return {@link #id}
 	 */
 	public int getId() {
@@ -108,7 +111,7 @@ public abstract class AbstractStorageLabel<V> implements Serializable, Comparabl
 
 	/**
 	 * Sets {@link #id}.
-	 * 
+	 *
 	 * @param id
 	 *            New value for {@link #id}
 	 */
@@ -118,7 +121,7 @@ public abstract class AbstractStorageLabel<V> implements Serializable, Comparabl
 
 	/**
 	 * Gets {@link #storageLabelType}.
-	 * 
+	 *
 	 * @return {@link #storageLabelType}
 	 */
 	public AbstractStorageLabelType<V> getStorageLabelType() {
@@ -127,7 +130,7 @@ public abstract class AbstractStorageLabel<V> implements Serializable, Comparabl
 
 	/**
 	 * Sets {@link #storageLabelType}.
-	 * 
+	 *
 	 * @param storageLabelType
 	 *            New value for {@link #storageLabelType}
 	 */
@@ -174,6 +177,7 @@ public abstract class AbstractStorageLabel<V> implements Serializable, Comparabl
 	/**
 	 * {@inheritDoc}
 	 */
+	@Override
 	public int compareTo(AbstractStorageLabel<?> other) {
 		return this.getClass().getName().compareTo(other.getClass().getName());
 	}

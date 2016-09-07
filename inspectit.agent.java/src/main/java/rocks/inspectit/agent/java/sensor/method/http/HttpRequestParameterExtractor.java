@@ -15,7 +15,7 @@ import rocks.inspectit.shared.all.communication.data.HttpInfo;
 
 /**
  * Thread-safe realization to extract information from <code>HttpServletRequests</code>.
- * 
+ *
  * @author Stefan Siegl
  */
 class HttpRequestParameterExtractor {
@@ -28,7 +28,7 @@ class HttpRequestParameterExtractor {
 	/**
 	 * Constraint for String length.
 	 */
-	private StringConstraint strConstraint;
+	private final StringConstraint strConstraint;
 
 	/**
 	 * Marker method. This method severs for marking the cache key in {@link #methodCache} as
@@ -41,12 +41,12 @@ class HttpRequestParameterExtractor {
 	 * Keeps track of already looked up <code>Method</code> objects for faster access. Get and Put
 	 * operations are synchronized by the concurrent hash map.
 	 */
-	private ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<String, Method>();
+	private final ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<String, Method>();
 
 	/**
 	 * Structure to store all necessary methods that we can invoke to get http information. These
 	 * objects are also used to cache the <code>Method</code> object in a cache.
-	 * 
+	 *
 	 * @author Stefan Siegl
 	 */
 	private enum HttpMethods {
@@ -69,11 +69,16 @@ class HttpRequestParameterExtractor {
 		/** Gets all attribute names in the session. */
 		SESSION_GET_ATTRIBUTE_NAMES("getAttributeNames", (Class<?>[]) null),
 		/** Gets the value of a session attribute. */
-		SESSION_GET_ATTRIBUTE("getAttribute", new Class[] { String.class });
+		SESSION_GET_ATTRIBUTE("getAttribute", new Class[] { String.class }),
+
+		/**
+		 * Gets the identifier of a session.
+		 */
+		SESSION_GET_ID("getId", (Class<?>[]) null);
 
 		/**
 		 * Constructor.
-		 * 
+		 *
 		 * @param methodName
 		 *            method
 		 * @param parameters
@@ -92,7 +97,7 @@ class HttpRequestParameterExtractor {
 
 	/**
 	 * Constructor.
-	 * 
+	 *
 	 * @param strConstraint
 	 *            the string constraints.
 	 */
@@ -110,7 +115,7 @@ class HttpRequestParameterExtractor {
 	/**
 	 * Reads the request URI from the given <code>HttpServletRequest</code> object and stores it
 	 * with the given <code>HttpTimerData</code> object.
-	 * 
+	 *
 	 * @param httpServletRequestClass
 	 *            the <code>Class</code> object representing the class of the given
 	 *            <code>HttpServletRequest</code>
@@ -140,7 +145,7 @@ class HttpRequestParameterExtractor {
 	/**
 	 * Reads the request URI from the given <code>HttpServletRequest</code> object and stores it
 	 * with the given <code>HttpTimerData</code> object.
-	 * 
+	 *
 	 * @param httpServletRequestClass
 	 *            the <code>Class</code> object representing the class of the given
 	 *            <code>HttpServletRequest</code>
@@ -170,7 +175,7 @@ class HttpRequestParameterExtractor {
 	/**
 	 * Reads all request parameters from the given <code>HttpServletRequest</code> object and stores
 	 * them with the given <code>HttpTimerData</code> object.
-	 * 
+	 *
 	 * @param httpServletRequestClass
 	 *            the <code>Class</code> object representing the class of the given
 	 *            <code>HttpServletRequest</code>
@@ -202,7 +207,7 @@ class HttpRequestParameterExtractor {
 	/**
 	 * Reads all request attributes from the given <code>HttpServletRequest</code> object and stores
 	 * them with the given <code>HttpTimerData</code> object.
-	 * 
+	 *
 	 * @param httpServletRequestClass
 	 *            the <code>Class</code> object representing the class of the given
 	 *            <code>HttpServletRequest</code>
@@ -246,7 +251,7 @@ class HttpRequestParameterExtractor {
 	/**
 	 * Reads all headers from the given <code>HttpServletRequest</code> object and stores them with
 	 * the given <code>HttpTimerData</code> object.
-	 * 
+	 *
 	 * @param httpServletRequestClass
 	 *            the <code>Class</code> object representing the class of the given
 	 *            <code>HttpServletRequest</code>
@@ -271,7 +276,7 @@ class HttpRequestParameterExtractor {
 			Map<String, String> headersResult = new HashMap<String, String>();
 			if (headers != null) {
 				while (headers.hasMoreElements()) {
-					String headerName = (String) headers.nextElement();
+					String headerName = headers.nextElement();
 					String headerValue = (String) headerValueMethod.invoke(httpServletRequest, new Object[] { headerName });
 					headersResult.put(headerName, strConstraint.crop(headerValue));
 				}
@@ -287,7 +292,7 @@ class HttpRequestParameterExtractor {
 	 * Reads all session attributes from the <code>HttpSession</code> of the given
 	 * <code>HttpServletRequest</code> object and stores them with the given
 	 * <code>HttpTimerData</code> object. This method ensures that no new session will be created.
-	 * 
+	 *
 	 * @param httpServletRequestClass
 	 *            the <code>Class</code> object representing the class of the given
 	 *            <code>HttpServletRequest</code>
@@ -339,7 +344,7 @@ class HttpRequestParameterExtractor {
 			if (null != sessionAttr) {
 				while (sessionAttr.hasMoreElements()) {
 					String sessionAtt = sessionAttr.nextElement();
-					Object sessionValue = (Object) getAttributeValueSession.invoke(httpSession, sessionAtt);
+					Object sessionValue = getAttributeValueSession.invoke(httpSession, sessionAtt);
 					sessionAttributes.put(sessionAtt, strConstraint.crop(getAttributeValue(sessionValue)));
 				}
 				return sessionAttributes;
@@ -351,9 +356,60 @@ class HttpRequestParameterExtractor {
 	}
 
 	/**
+	 *
+	 * Reads the session id of the request if available. This method ensures that no new session
+	 * will be created.
+	 *
+	 * @param httpServletRequestClass
+	 *            the <code>Class</code> object representing the class of the given
+	 *            <code>HttpServletRequest</code>
+	 * @param httpServletRequest
+	 *            the object realizing the <code> HttpServletRequest </code> interface.
+	 * @return session attributes
+	 */
+	public String getSessionID(Class<?> httpServletRequestClass, Object httpServletRequest) {
+		Method getSessionMethod = retrieveMethod(HttpMethods.SERVLET_GET_SESSION, httpServletRequestClass);
+
+		if (null == getSessionMethod) { // Could not retrieve method
+			return null;
+		}
+
+		Object httpSession;
+		Class<?> httpSessionClass;
+		try {
+			httpSession = getSessionMethod.invoke(httpServletRequest, new Object[] { Boolean.FALSE });
+			if (httpSession == null) {
+				// Currently we do not have a session and thus cannot get any session attributes
+				if (LOG.isDebugEnabled()) {
+					LOG.debug("No session can be found");
+				}
+				return null;
+			}
+			httpSessionClass = httpSession.getClass();
+
+		} catch (Exception e) {
+			LOG.error("Invocation of to get attributes on given object failed.", e);
+			// we cannot go on!
+			return null;
+		}
+
+		Method getIdMethod = retrieveMethod(HttpMethods.SESSION_GET_ID, httpSessionClass);
+		if (null == getIdMethod) {
+			return null;
+		}
+
+		try {
+			return (String) getIdMethod.invoke(httpSession);
+		} catch (Exception e) {
+			LOG.error("Invocation of to get attributes on given object failed.", e);
+		}
+		return null;
+	}
+
+	/**
 	 * Tries a lookup in the cache first, then tries to get the <code>Method</code> object via
 	 * reflection.
-	 * 
+	 *
 	 * @param httpMethod
 	 *            the Method to lookup
 	 * @param clazzUsedToLookup
@@ -390,7 +446,7 @@ class HttpRequestParameterExtractor {
 
 	/**
 	 * Generates and return a lookup name for the cache.
-	 * 
+	 *
 	 * @param httpMethod
 	 *            the Method to lookup
 	 * @param clazz
@@ -404,9 +460,9 @@ class HttpRequestParameterExtractor {
 	/**
 	 * Utility method that checks if the attribute provided is an Array, and if it so, formats the
 	 * return String in the human-readable form. If the attribute is not an Array, the
-	 * {@link Object#toString()} will be returned. If attribute is <code>null</code>, then
-	 * '<notset>' will be returned.
-	 * 
+	 * {@link Object#toString()} will be returned. If attribute is <code>null</code>, then '
+	 * <notset>' will be returned.
+	 *
 	 * @param attribute
 	 *            Attribute to get {@link String} value for.
 	 * @return Human-readable value of attribute.

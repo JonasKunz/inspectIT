@@ -44,3 +44,6 @@ class: rocks.inspectit.shared.all.communication.data.HttpTimerData
 
 # HttpInfo - INSPECTIT-1849
 29: httpInfo
+
+# Added Session - todo open ticket
+30: sessionId

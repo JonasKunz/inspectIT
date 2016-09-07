@@ -230,6 +230,7 @@ subprojects {
 
 	/** All plugins */
 	// plugins {} block can not be used in subprojects
+	apply plugin: 'maven'
 	apply plugin: 'java'
 	apply plugin: 'pmd'
 	apply plugin: 'checkstyle'

@@ -26,9 +26,9 @@ import rocks.inspectit.shared.all.communication.data.HttpTimerData;
  * This hook measures timer data like the {@link TimerHook} but in addition provides Http
  * information. Another difference is that we ensure that only one Http metric per request is
  * created.
- * 
+ *
  * @author Stefan Siegl
- * 
+ *
  */
 public class HttpHook implements IMethodHook {
 
@@ -55,7 +55,7 @@ public class HttpHook implements IMethodHook {
 	/**
 	 * The thread MX bean.
 	 */
-	private ThreadMXBean threadMXBean;
+	private final ThreadMXBean threadMXBean;
 
 	/**
 	 * Defines if the thread CPU time is supported.
@@ -75,7 +75,7 @@ public class HttpHook implements IMethodHook {
 	/**
 	 * Extractor for Http parameters.
 	 */
-	private HttpRequestParameterExtractor extractor;
+	private final HttpRequestParameterExtractor extractor;
 
 	/**
 	 * Configuration setting if session data should be captured.
@@ -113,7 +113,7 @@ public class HttpHook implements IMethodHook {
 
 	/**
 	 * This constructor creates a new instance of a <code>HttpHook</code>.
-	 * 
+	 *
 	 * @param timer
 	 *            The timer
 	 * @param idManager
@@ -241,15 +241,15 @@ public class HttpHook implements IMethodHook {
 				if (providesHttpMetrics(servletRequestClass)) {
 
 					try {
-						double endTime = ((Double) timeStack.pop()).doubleValue();
-						double startTime = ((Double) timeStack.pop()).doubleValue();
+						double endTime = timeStack.pop().doubleValue();
+						double startTime = timeStack.pop().doubleValue();
 						double duration = endTime - startTime;
 
 						// default setting to a negative number
 						double cpuDuration = -1.0d;
 						if (threadCPUTimeEnabled) {
-							long cpuEndTime = ((Long) threadCpuTimeStack.pop()).longValue();
-							long cpuStartTime = ((Long) threadCpuTimeStack.pop()).longValue();
+							long cpuEndTime = threadCpuTimeStack.pop().longValue();
+							long cpuStartTime = threadCpuTimeStack.pop().longValue();
 							cpuDuration = (cpuEndTime - cpuStartTime) / 1000000.0d;
 						}
 
@@ -275,6 +275,8 @@ public class HttpHook implements IMethodHook {
 						data.setCount(1L);
 
 						// Include additional http information
+						data.setSessionId(extractor.getSessionID(servletRequestClass, httpServletRequest));
+
 						data.getHttpInfo().setUri(extractor.getRequestUri(servletRequestClass, httpServletRequest));
 						data.getHttpInfo().setRequestMethod(extractor.getRequestMethod(servletRequestClass, httpServletRequest));
 						data.setParameters(extractor.getParameterMap(servletRequestClass, httpServletRequest));
@@ -302,7 +304,7 @@ public class HttpHook implements IMethodHook {
 	/**
 	 * Checks if the given Class is realizing the HttpServletRequest interface directly or
 	 * indirectly. Only if this interface is realized, we can get Http metric information.
-	 * 
+	 *
 	 * @param c
 	 *            The class to check
 	 * @return whether or not the HttpServletRequest interface is realized.
@@ -327,7 +329,7 @@ public class HttpHook implements IMethodHook {
 	 * recursively checks if the given <code>Class</code> object realizes a given interface. This is
 	 * done by recursively checking the implementing interfaces of the current class, then jump to
 	 * the superclass and repeat. If you reach the java.lang.Object class we know that we can stop
-	 * 
+	 *
 	 * @param c
 	 *            the <code>Class</code> object to search for
 	 * @param interfaceName

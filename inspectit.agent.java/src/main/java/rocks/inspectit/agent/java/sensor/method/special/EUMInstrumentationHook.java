@@ -3,7 +3,6 @@ package rocks.inspectit.agent.java.sensor.method.special;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -17,36 +16,33 @@ import rocks.inspectit.agent.java.config.StorageException;
 import rocks.inspectit.agent.java.config.impl.SpecialSensorConfig;
 import rocks.inspectit.agent.java.eum.data.DataHandler;
 import rocks.inspectit.agent.java.eum.data.IDataHandler;
+import rocks.inspectit.agent.java.eum.data.IdGenerator;
 import rocks.inspectit.agent.java.eum.instrumentation.JSAgentBuilder;
 import rocks.inspectit.agent.java.eum.instrumentation.TagInjectionResponseWrapper;
-import rocks.inspectit.agent.java.eum.reflection.WCookie;
 import rocks.inspectit.agent.java.eum.reflection.WHttpServletRequest;
 import rocks.inspectit.agent.java.eum.reflection.WHttpServletResponse;
 import rocks.inspectit.agent.java.hooking.ISpecialHook;
 import rocks.inspectit.agent.java.proxy.IRuntimeLinker;
 import rocks.inspectit.agent.java.proxy.impl.RuntimeLinker;
 import rocks.inspectit.agent.java.sensor.method.http.StartEndMarker;
+import rocks.inspectit.shared.all.instrumentation.config.impl.AgentEndUserMonitoringConfig;
 import rocks.inspectit.shared.all.instrumentation.config.impl.JSAgentModule;
 
 /**
- * Instrumentation Hook responsible for teh EUM instrumentation. This allows the injection of the
- * inspectIT JS Agent and allows intercepting beacon requests.
- *
  * @author Jonas Kunz
  *
  */
 public class EUMInstrumentationHook implements ISpecialHook {
-
-	/**
-	 * The logger.
-	 */
-	private static final Logger LOG = LoggerFactory.getLogger(EUMInstrumentationHook.class);
-
 	/**
 	 * The name of the RegEx-Group within the RegEx for matching the Agent specifying the Agent
 	 * Modules.
 	 */
 	private static final int AGENT_MODULES_GROUP_INDEX = 1;
+
+	/**
+	 * The logger.
+	 */
+	private static final Logger LOG = LoggerFactory.getLogger(EUMInstrumentationHook.class);;
 
 	/**
 	 * The runtime linker for creating proxies.
@@ -59,14 +55,14 @@ public class EUMInstrumentationHook implements ISpecialHook {
 	private IDataHandler dataHandler;
 
 	/**
-	 * A unique prefix for EUM session IDs.
+	 * The idGenerator used for generating session and tab IDs.
 	 */
-	private String sessionIDPrefix;
+	private IdGenerator idGenerator;
 
 	/**
-	 * Atomic long for assigning session ids.
+	 * The builder for generating the agent source code.
 	 */
-	private AtomicLong sessionIdCounter;
+	private JSAgentBuilder agentBuilder;
 
 	/**
 	 * A matcher for the beacon URL.
@@ -101,12 +97,19 @@ public class EUMInstrumentationHook implements ISpecialHook {
 	 *            the {@link RuntimeLinker} to use for generating proxies.
 	 * @param dataHandler
 	 *            the {@link DataHandler} responsible for decoding received beacons.
+	 * @param idGenerator
+	 *            the idGeneratore for generating session and tab IDs.
 	 * @param config
 	 *            the configuration storage containing the EUM config.
+	 * @param agentBuilder
+	 *            the agent script builder.
 	 */
-	public EUMInstrumentationHook(IRuntimeLinker linker, IDataHandler dataHandler, IConfigurationStorage config) {
+	public EUMInstrumentationHook(IRuntimeLinker linker, IdGenerator idGenerator, IDataHandler dataHandler, IConfigurationStorage config, JSAgentBuilder agentBuilder) {
+		super();
 		this.linker = linker;
 		this.dataHandler = dataHandler;
+		this.idGenerator = idGenerator;
+		this.agentBuilder = agentBuilder;
 		initConfig(config);
 	}
 
@@ -118,12 +121,11 @@ public class EUMInstrumentationHook implements ISpecialHook {
 		Object servletRequest = parameters[0];
 		Object servletResponse = parameters[1];
 		if (interceptRequest(servletRequest, servletResponse)) {
-			// remove marker here as afterBody will not be called
 			interceptionCheckPerformed.markEndCall();
 			if (interceptionCheckPerformed.matchesFirst()) {
 				interceptionCheckPerformed.remove(); // cleanup
 			}
-			return 1; // prevents the original request handling from being executed
+			return 1;
 		} else {
 			parameters[1] = instrumentResponse(servletRequest, servletResponse);
 			return null;
@@ -171,16 +173,14 @@ public class EUMInstrumentationHook implements ISpecialHook {
 				Matcher beaconURLMatcher = beaconURLRegEx.matcher(path);
 				if (beaconURLMatcher.matches()) {
 					// send everything ok response
-					res.setStatus(200);
-					res.getWriter().flush();
-					receiveBeacon(req);
+					receiveBeacon(req, res);
 					return true;
 				}
 
 				Matcher agentURLMatcher = jsAgentURLRegEx.matcher(path);
 				if (agentURLMatcher.matches()) {
 					String modules = agentURLMatcher.group(AGENT_MODULES_GROUP_INDEX).toLowerCase();
-					sendScript(res, JSAgentBuilder.buildJsFile(modules));
+					sendScript(res, agentBuilder.buildJsFile(modules));
 					return true;
 				}
 				return false;
@@ -197,17 +197,25 @@ public class EUMInstrumentationHook implements ISpecialHook {
 	 *
 	 * @param req
 	 *            the beacon request
+	 * @param res
+	 *            the response object
 	 */
-	private void receiveBeacon(WHttpServletRequest req) {
+	private void receiveBeacon(WHttpServletRequest req, WHttpServletResponse res) {
 		BufferedReader reader = req.getReader();
+
+		res.setStatus(200);
+		res.setContentType("application/json");
+		PrintWriter writer = res.getWriter();
 
 		String contentData;
 		try {
 			contentData = CharStreams.toString(reader);
-			dataHandler.insertBeacon(contentData);
+			String response = dataHandler.insertBeacon(contentData);
+			writer.write(response);
 		} catch (IOException e) {
 			LOG.error("Error receiving beacon!", e);
 		}
+		writer.flush();
 	}
 
 	/**
@@ -243,10 +251,8 @@ public class EUMInstrumentationHook implements ISpecialHook {
 			if (configurationValid && WHttpServletResponse.isInstance(httpResponseObj)) {
 				if (!linker.isProxyInstance(httpResponseObj, TagInjectionResponseWrapper.class)) {
 
-					Object sessionIdCookie = generateSessionIDCookie(httpRequestObj);
-
 					ClassLoader cl = httpResponseObj.getClass().getClassLoader();
-					TagInjectionResponseWrapper wrap = new TagInjectionResponseWrapper(httpResponseObj, sessionIdCookie, completeScriptTags);
+					TagInjectionResponseWrapper wrap = new TagInjectionResponseWrapper(httpRequestObj, httpResponseObj, idGenerator, completeScriptTags);
 					Object proxy = linker.createProxy(TagInjectionResponseWrapper.class, wrap, cl);
 					if (proxy == null) {
 						return httpResponseObj;
@@ -263,50 +269,6 @@ public class EUMInstrumentationHook implements ISpecialHook {
 	}
 
 	/**
-	 *
-	 * Generates the cookie for tracking the user session. The returned Cookie is of type
-	 * javax.servlet.http.Cookie.
-	 *
-	 * @param httpRequestObj
-	 *            the incoming request
-	 * @return the new session ID cookie, or null if it is already set.
-	 */
-	private Object generateSessionIDCookie(Object httpRequestObj) {
-		// check if it already has an id set, if yes reuse it and renew session expiration
-		WHttpServletRequest request = WHttpServletRequest.wrap(httpRequestObj);
-		Object[] cookies = request.getCookies();
-		if (cookies != null) {
-			for (Object cookieObj : cookies) {
-				WCookie cookie = WCookie.wrap(cookieObj);
-				if (cookie.getName().equals(JSAgentBuilder.SESSION_ID_COOKIE_NAME)) {
-					return null; // cookie already present, nothing todo
-				}
-			}
-		}
-
-		String sessionID = generateUserSessionID();
-
-		// otherwise generate the cookie
-		Object cookie = WCookie.newInstance(httpRequestObj.getClass().getClassLoader(), JSAgentBuilder.SESSION_ID_COOKIE_NAME, sessionID);
-		if (cookie != null) {
-			WCookie wrappedCookie = WCookie.wrap(cookie);
-			wrappedCookie.setPath("/");
-		}
-		// We do not set any expiration age - the default age "-1" represents a session cookie which
-		// is deleted when the browser is closed
-		return cookie;
-	}
-
-	/**
-	 * Generates a unique ID to identify the user session.
-	 *
-	 * @return the generated id.
-	 */
-	private String generateUserSessionID() {
-		return sessionIDPrefix + sessionIdCounter.incrementAndGet(); // will be unique
-	}
-
-	/**
 	 * Initializes the URL configuration using the given configuration storage.
 	 *
 	 * @param configurationStorage
@@ -314,10 +276,9 @@ public class EUMInstrumentationHook implements ISpecialHook {
 	 */
 	public final void initConfig(IConfigurationStorage configurationStorage) {
 		try {
-			sessionIDPrefix = configurationStorage.getAgentName() + "_" + System.currentTimeMillis() + "_";
-			sessionIdCounter = new AtomicLong();
+			AgentEndUserMonitoringConfig endUserMonitoringConfig = configurationStorage.getEndUserMonitoringConfig();
 
-			String base = configurationStorage.getEndUserMonitoringConfig().getScriptBaseUrl();
+			String base = endUserMonitoringConfig.getScriptBaseUrl();
 			beaconURLRegEx = Pattern.compile(Pattern.quote(base + JSAgentModule.BEACON_SUB_PATH), Pattern.CASE_INSENSITIVE);
 
 			// modules regex matches any string consisting only of valid module identifiers
@@ -336,8 +297,10 @@ public class EUMInstrumentationHook implements ISpecialHook {
 
 			StringBuilder tags = new StringBuilder();
 			tags.append("<script type=\"text/javascript\">" + "window.inspectIT_settings = {" + "eumManagementServer : \"");
-			tags.append(base).append(JSAgentModule.BEACON_SUB_PATH);
-			tags.append("\"}; </script> <script type=\"text/javascript\" src=\"");
+			tags.append(base).append(JSAgentModule.BEACON_SUB_PATH).append("\""); // NOPMD
+			tags.append(", relevancyThreshold : ").append(endUserMonitoringConfig.getRelevancyThreshold());
+			tags.append(", allowListenerInstrumentation : ").append(endUserMonitoringConfig.isListenerInstrumentationAllowed());
+			tags.append("}; </script> <script type=\"text/javascript\" src=\"");
 			tags.append(base).append(JSAgentModule.JAVASCRIPT_URL_PREFIX);
 			tags.append(JSAgentModule.JS_AGENT_REVISION).append('_');
 			tags.append(configurationStorage.getEndUserMonitoringConfig().getActiveModules());

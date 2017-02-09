@@ -47,7 +47,12 @@ public enum JSAgentModule {
 	 */
 	RESTIMINGS_MODULE(
 			'2', "plugins/restimings.js", "Resource Timings Module",
-			"This module deals with collecting Resource timings provided by the Resource Timings API. See: https://www.w3.org/TR/resource-timing/ for further information.");
+			"This module deals with collecting Resource timings provided by the Resource Timings API. See: https://www.w3.org/TR/resource-timing/ for further information."),
+
+	/**
+	 * Single-Page-Application Navigation changes.
+	 */
+	SPANAVIGATION_MODULE('s', "plugins/spanavigation.js", "SPA Navigation Tracker", "Tracks Single-Page-Application changes to the browser history.");
 
 
 	/**

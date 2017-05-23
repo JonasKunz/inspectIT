@@ -297,6 +297,11 @@ public class ConfigurationResolver {
 			} else {
 				stringBuilder.append("\n||-Agent minification: disabled");
 			}
+			if (eumConfig.isRespectDNTHeader()) {
+				stringBuilder.append("\n||-DNT header respect: enabled");
+			} else {
+				stringBuilder.append("\n||-DNT header respect: disabled");
+			}
 		}
 
 		return stringBuilder.toString();

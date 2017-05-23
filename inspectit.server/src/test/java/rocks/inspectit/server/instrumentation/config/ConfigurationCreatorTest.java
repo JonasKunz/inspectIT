@@ -324,6 +324,7 @@ public class ConfigurationCreatorTest extends TestBase {
 			assertThat(eumConfig.getActiveModules(), is(modules));
 			assertThat(eumConfig.getScriptBaseUrl(), is(url));
 			assertThat(eumConfig.isListenerInstrumentationAllowed(), is(false));
+			assertThat(eumConfig.isRespectDNTHeader(), is(false));
 			assertThat(eumConfig.isAgentMinificationEnabled(), is(false));
 		}
 

@@ -102,7 +102,7 @@ public class ConfigurationCreator {
 
 		EndUserMonitoringConfig eumConf = environment.getEumConfig();
 		agentConfiguration.setEumConfig(new AgentEndUserMonitoringConfig(eumConf.isEumEnabled(), eumConf.getScriptBaseUrl(), eumConf.getActiveModules(), eumConf.getRelevancyThreshold(),
-				eumConf.isListenerInstrumentationAllowed(), eumConf.isAgentMinificationEnabled()));
+				eumConf.isListenerInstrumentationAllowed(), eumConf.isAgentMinificationEnabled(), eumConf.isRespectDNTHeader()));
 
 		// then all special sensors
 		Collection<MethodSensorTypeConfig> specialMethodSensorTypeConfigs = new ArrayList<>(0);

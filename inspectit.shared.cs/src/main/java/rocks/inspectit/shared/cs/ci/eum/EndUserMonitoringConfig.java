@@ -61,6 +61,12 @@ public class EndUserMonitoringConfig {
 	private boolean agentMinificationEnabled = true;
 
 	/**
+	 * When enabled, users sending a Do-Not-Track Header will not receive teh JS Agent.
+	 */
+	@XmlAttribute(name = "respectDNTHeader", required = true)
+	private boolean respectDNTHeader = false;
+
+	/**
 	 * Gets {@link #eumEnabled}.
 	 *
 	 * @return {@link #eumEnabled}
@@ -174,6 +180,26 @@ public class EndUserMonitoringConfig {
 		this.agentMinificationEnabled = agentMinificationEnabled;
 	}
 
+
+	/**
+	 * Gets {@link #respectDNTHeader}.
+	 *
+	 * @return {@link #respectDNTHeader}
+	 */
+	public boolean isRespectDNTHeader() {
+		return this.respectDNTHeader;
+	}
+
+	/**
+	 * Sets {@link #respectDNTHeader}.
+	 *
+	 * @param respectDNTHeader
+	 *            New value for {@link #respectDNTHeader}
+	 */
+	public void setRespectDNTHeader(boolean respectDNTHeader) {
+		this.respectDNTHeader = respectDNTHeader;
+	}
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -186,6 +212,7 @@ public class EndUserMonitoringConfig {
 		result = (prime * result) + (this.eumEnabled ? 1231 : 1237);
 		result = (prime * result) + (this.listenerInstrumentationAllowed ? 1231 : 1237);
 		result = (prime * result) + this.relevancyThreshold;
+		result = (prime * result) + (this.respectDNTHeader ? 1231 : 1237);
 		result = (prime * result) + ((this.scriptBaseUrl == null) ? 0 : this.scriptBaseUrl.hashCode());
 		return result;
 	}
@@ -222,6 +249,9 @@ public class EndUserMonitoringConfig {
 			return false;
 		}
 		if (this.relevancyThreshold != other.relevancyThreshold) {
+			return false;
+		}
+		if (this.respectDNTHeader != other.respectDNTHeader) {
 			return false;
 		}
 		if (this.scriptBaseUrl == null) {

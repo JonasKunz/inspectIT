@@ -45,6 +45,11 @@ public class AgentEndUserMonitoringConfig {
 	private boolean agentMinificationEnabled;
 
 	/**
+	 * If enabled, users sending a Do-Not-Track Header will not be monitored.
+	 */
+	private boolean respectDNTHeader;
+
+	/**
 	 * Default constructor.
 	 */
 	public AgentEndUserMonitoringConfig() {
@@ -64,15 +69,18 @@ public class AgentEndUserMonitoringConfig {
 	 *            {@link #listenerInstrumentationAllowed}
 	 * @param agentMinificationEnabled
 	 *            the agent minification flag, see {@link #agentMinificationEnabled}
+	 * @param respectDNTHeader
+	 *            the agent DNT header flag, see {@link #respectDNTHeader}
 	 */
 	public AgentEndUserMonitoringConfig(boolean isEnabled, String scriptBaseUrl, String activeModules, int relevancyThresholdMS, boolean listenerInstrumentationAllowed,
-			boolean agentMinificationEnabled) {
+			boolean agentMinificationEnabled, boolean respectDNTHeader) {
 		this.enabled = isEnabled;
 		this.scriptBaseUrl = scriptBaseUrl;
 		this.activeModules = activeModules;
 		this.relevancyThreshold = relevancyThresholdMS;
 		this.listenerInstrumentationAllowed = listenerInstrumentationAllowed;
 		this.agentMinificationEnabled = agentMinificationEnabled;
+		this.respectDNTHeader = respectDNTHeader;
 
 	}
 
@@ -191,6 +199,25 @@ public class AgentEndUserMonitoringConfig {
 	}
 
 	/**
+	 * Gets {@link #respectDNTHeader}.
+	 *
+	 * @return {@link #respectDNTHeader}
+	 */
+	public boolean isRespectDNTHeader() {
+		return this.respectDNTHeader;
+	}
+
+	/**
+	 * Sets {@link #respectDNTHeader}.
+	 *
+	 * @param respectDNTHeader
+	 *            New value for {@link #respectDNTHeader}
+	 */
+	public void setRespectDNTHeader(boolean respectDNTHeader) {
+		this.respectDNTHeader = respectDNTHeader;
+	}
+
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
@@ -202,6 +229,7 @@ public class AgentEndUserMonitoringConfig {
 		result = (prime * result) + (this.enabled ? 1231 : 1237);
 		result = (prime * result) + (this.listenerInstrumentationAllowed ? 1231 : 1237);
 		result = (prime * result) + this.relevancyThreshold;
+		result = (prime * result) + (this.respectDNTHeader ? 1231 : 1237);
 		result = (prime * result) + ((this.scriptBaseUrl == null) ? 0 : this.scriptBaseUrl.hashCode());
 		return result;
 	}
@@ -238,6 +266,9 @@ public class AgentEndUserMonitoringConfig {
 			return false;
 		}
 		if (this.relevancyThreshold != other.relevancyThreshold) {
+			return false;
+		}
+		if (this.respectDNTHeader != other.respectDNTHeader) {
 			return false;
 		}
 		if (this.scriptBaseUrl == null) {

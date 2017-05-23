@@ -32,6 +32,7 @@ interface IAgentConfiguration {
     activeAgentModules: string;
     relevancyThreshold: number;
     allowListenerInstrumentation: boolean;
+    respectDNT: boolean;
     traceid?: IdNumber;
 }
 

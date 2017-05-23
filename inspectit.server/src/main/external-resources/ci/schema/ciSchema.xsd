@@ -545,6 +545,7 @@
     <xs:attribute name="relevancyThreshold" type="xs:int" use="required"/>
     <xs:attribute name="listenerInstrumentationAllowed" type="xs:boolean" use="required"/>
     <xs:attribute name="agentMinificationEnabled" type="xs:boolean" use="required"/>
+    <xs:attribute name="respectDNTHeader" type="xs:boolean" use="required"/>
   </xs:complexType>
 
   <xs:complexType name="abstractPlatformSensorConfig" abstract="true">

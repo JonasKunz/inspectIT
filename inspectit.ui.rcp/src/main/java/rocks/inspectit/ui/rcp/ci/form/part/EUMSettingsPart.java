@@ -88,6 +88,10 @@ public class EUMSettingsPart extends SectionPart implements IPropertyListener {
 	 */
 	private Button listenerInstrumentationAllowedButton;
 
+	/**
+	 * Allows to configure the Agent to either respect or to ignore Do-Not-Track headers.
+	 */
+	private Button respectDNTButton;
 
 	/**
 	 * Default constructor.
@@ -163,6 +167,12 @@ public class EUMSettingsPart extends SectionPart implements IPropertyListener {
 		listenerInstrumentationAllowedButton.setSelection(environment.getEumConfig().isListenerInstrumentationAllowed());
 		createInfoLabel(mainComposite, toolkit, "If deactivated, the JS agent will not instrument any JS event listeners to prevent performance issues.");
 
+		toolkit.createLabel(mainComposite, "Respect Do-Not-Track Header:").setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
+		respectDNTButton = toolkit.createButton(mainComposite, "", SWT.CHECK);
+		respectDNTButton.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+		respectDNTButton.setSelection(environment.getEumConfig().isRespectDNTHeader());
+		createInfoLabel(mainComposite, toolkit, "If enabled, users which send a Do-Not-Track header will not be monitored.");
+
 		toolkit.createLabel(mainComposite, "Deliver Minified JS Agent:").setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
 		minificationEnabledButton = toolkit.createButton(mainComposite, "", SWT.CHECK);
 		minificationEnabledButton.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
@@ -233,6 +243,7 @@ public class EUMSettingsPart extends SectionPart implements IPropertyListener {
 		eumEnabledButton.addListener(SWT.Selection, dirtyListener);
 		scriptBaseUrl.addListener(SWT.Modify, dirtyListener);
 		listenerInstrumentationAllowedButton.addListener(SWT.Selection, dirtyListener);
+		respectDNTButton.addListener(SWT.Selection, dirtyListener);
 		minificationEnabledButton.addListener(SWT.Selection, dirtyListener);
 		relevancyThresholdMS.addListener(SWT.Modify, dirtyListener);
 
@@ -247,6 +258,7 @@ public class EUMSettingsPart extends SectionPart implements IPropertyListener {
 		modulesTable.setEnabled(en);
 		scriptBaseUrl.setEnabled(en);
 		listenerInstrumentationAllowedButton.setEnabled(en);
+		respectDNTButton.setEnabled(en);
 		minificationEnabledButton.setEnabled(en);
 		relevancyThresholdMS.setEnabled(en);
 	}
@@ -315,6 +327,7 @@ public class EUMSettingsPart extends SectionPart implements IPropertyListener {
 			super.commit(onSave);
 			environment.getEumConfig().setEumEnabled(eumEnabledButton.getSelection());
 			environment.getEumConfig().setListenerInstrumentationAllowed(listenerInstrumentationAllowedButton.getSelection());
+			environment.getEumConfig().setRespectDNTHeader(respectDNTButton.getSelection());
 			environment.getEumConfig().setAgentMinificationEnabled(minificationEnabledButton.getSelection());
 			environment.getEumConfig().setScriptBaseUrl(scriptBaseUrl.getText());
 			environment.getEumConfig().setRelevancyThreshold(Integer.parseInt(relevancyThresholdMS.getText()));

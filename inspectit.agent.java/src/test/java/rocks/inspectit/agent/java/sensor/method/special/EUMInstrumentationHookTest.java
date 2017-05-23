@@ -87,6 +87,7 @@ public class EUMInstrumentationHookTest extends TestBase {
 
 	@BeforeMethod
 	public void initMocks() throws IOException, StorageException {
+		eumConfig.setRespectDNTHeader(false);
 		eumConfig.setActiveModules("a12");
 		eumConfig.setEnabled(true);
 		eumConfig.setScriptBaseUrl("/baseUrl/");
@@ -229,6 +230,7 @@ public class EUMInstrumentationHookTest extends TestBase {
 			assertThat(intercepted, equalTo(false));
 			assertThat(response, instanceOf(FakeWrapper.class));
 		}
+
 		@SuppressWarnings("unchecked")
 		@Test
 		public void testPreventDoubleInstrumentation() throws IOException {
@@ -289,5 +291,35 @@ public class EUMInstrumentationHookTest extends TestBase {
 
 		}
 
+		@Test
+		public void testRespectDNTHeaderNotSet() throws IOException {
+			eumConfig.setRespectDNTHeader(true);
+			// header not set
+
+			hook = new EUMInstrumentationHook(linker, tracer, dataHandler, config, agentBuilder);
+			Object[] params = new Object[] { dummyRequest, dummyResponse };
+
+			boolean intercepted = null != hook.beforeBody(METHOD_ID, dummyServlet, params, ssc);
+			Object response = params[1];
+
+			assertThat(intercepted, equalTo(false));
+			assertThat(response, instanceOf(FakeWrapper.class));
+		}
+
+		@Test
+		public void testRespectDNTHeaderSet() throws IOException {
+			eumConfig.setRespectDNTHeader(true);
+			// header set
+			when(dummyRequest.getHeader("DNT")).thenReturn("1");
+
+			hook = new EUMInstrumentationHook(linker, tracer, dataHandler, config, agentBuilder);
+			Object[] params = new Object[] { dummyRequest, dummyResponse };
+
+			boolean intercepted = null != hook.beforeBody(METHOD_ID, dummyServlet, params, ssc);
+			Object response = params[1];
+
+			assertThat(intercepted, equalTo(false));
+			assertThat(response, equalTo((Object) dummyResponse));
+		}
 	}
 }

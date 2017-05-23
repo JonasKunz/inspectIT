@@ -16,8 +16,11 @@ let pageLoadRequest: PageLoadRequestRecord;
  * Checks whether the browser supports this JS Agent.
  * @internal
  */
-function checkBrowserRequirements(): boolean {
-    return typeof XMLHttpRequest !== "undefined" && ("addEventListener" in window);
+function checkAgentRequirements(): boolean {
+    const browserSupported =  typeof XMLHttpRequest !== "undefined" && ("addEventListener" in window);
+    const dntValue = (navigator as any).doNotTrack || (window as any).doNotTrack || (navigator as any).msDoNotTrack;
+    const doNotTrack = SETTINGS.respectDNT && (dntValue === 1 || dntValue === "1" || dntValue === "yes");
+    return browserSupported && ! doNotTrack;
 }
 
 let initCalled = false;
@@ -34,7 +37,7 @@ window.inspectIT.init = function () {
         initCalled = true;
     }
 
-    if (!checkBrowserRequirements()) {
+    if (!checkAgentRequirements()) {
         return;
     }
 

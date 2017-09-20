@@ -38,6 +38,8 @@
 		<properties>
 			<boolean-property name="Write Data to influxDB" default-value="false" server-restart-required="false" logical-name="influxdb.active" advanced="false"
 				description="If activated, all long term data (business transaction timings, resource utilizations, etc.) will be written to an influxDB. Otherwise data will be written to relational database." />
+			<boolean-property name="Write Data to Cassandra" default-value="false" server-restart-required="false" logical-name="cassandra.active" advanced="false"
+				description="If activated, all monitoring data will be written to the configured Apache Cassandra database." />
 			<group-property name="JDBC" description="Defines JDBC properties to be used if relational database is used for string data.">
 				<properties>
 					<string-property name="URL" default-value="jdbc:h2:./db/inspectit;LOCK_MODE=0;CACHE_SIZE=131072;DB_CLOSE_ON_EXIT=FALSE" server-restart-required="true" logical-name="database.url"
@@ -93,6 +95,31 @@
 						</validators>
 					</string-property>
 					<string-property name="Retention Policy" default-value="autogen" server-restart-required="false" logical-name="influxdb.retentionPolicy" advanced="true" description="Retention policy for the influxDB database.">
+						<validators>
+							<isNotEmpty />
+						</validators>
+					</string-property>
+				</properties>
+				<group-validators/>
+			</group-property>
+			<group-property name="Cassandra" description="Defines properties to be used if Apache Cassandra is used for storing monitoring data.">
+				<properties>
+					<boolean-property name="Enable SSL" default-value="false" server-restart-required="false" logical-name="cassandra.ssl" advanced="false" description="If enabled the inspectIT server uses a SSL/HTTPS connection to Cassandra."></boolean-property>
+					<string-property name="Hosts" default-value="localhost" server-restart-required="false" logical-name="cassandra.hosts" advanced="false" description="Comma separated list of the cluster-endpoints to connect to.">
+						<validators>
+							<isNotEmpty />
+						</validators>
+					</string-property>
+					<long-property name="Port" default-value="9042" server-restart-required="false" logical-name="cassandra.port" advanced="false" description="The port on which the Java Driver can conenct to Cassandra.">
+						<validators>
+							<isPositive />
+						</validators>
+					</long-property>
+					<string-property name="Username" default-value="" server-restart-required="false" logical-name="cassandra.user" advanced="false" description="The username to be used to connect to Cassandra.">
+					</string-property>
+					<string-property name="Password" default-value="" password="true" server-restart-required="false" logical-name="cassandra.passwd" advanced="false" description="The password to be used to connect to Cassandra.">
+					</string-property>
+					<string-property name="Keyspace Name" default-value="inspectit" server-restart-required="false" logical-name="cassandra.keyspace" advanced="false" description="The keyspace name in Cassandra to write the data to.">
 						<validators>
 							<isNotEmpty />
 						</validators>

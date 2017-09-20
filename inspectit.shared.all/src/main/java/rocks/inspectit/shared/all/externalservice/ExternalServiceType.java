@@ -15,7 +15,12 @@ public enum ExternalServiceType {
 	/**
 	 * An SMTP server.
 	 */
-	MAIL_SENDER("eMail Service");
+	MAIL_SENDER("eMail Service"),
+
+	/**
+	 * Apache Cassandra Database.
+	 */
+	CASSANDRA("Cassandra");
 
 	/**
 	 * The service name.

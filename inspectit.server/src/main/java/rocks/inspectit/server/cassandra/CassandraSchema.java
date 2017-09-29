@@ -29,6 +29,17 @@ public interface CassandraSchema {
 		String STATUS = "status";
 	}
 
+	public interface ResourceLoadRequests extends EumTable {
+		String TABLE_NAME = "resourceload_requests";
+
+		String DURATION = "duration";
+		String URL = "url";
+		String BASE_URL = "base_url";
+
+		String INITIATOR_TYPE = "initiator_type";
+		String TRANSFER_SIZE = "transfer_size";
+	}
+
 	public interface RootDomEvents extends EumTable {
 		String TABLE_NAME = "root_dom_events";
 
@@ -43,6 +54,30 @@ public interface CassandraSchema {
 
 		String URL = "url";
 		String DURATION = "duration";
+		String RESOURCE_COUNT = "resource_count";
+
+		String SPEEDINDEX = "speedindex";
+		String FIRST_PAINT = "first_paint";
+
+		/// navtimings, navigation start and loadEventEnd are repsented by time and duration
+		String UNLOAD_EVENT_START = "unload_event_start";
+		String UNLOAD_EVENT_END = "unload_event_end";
+		String REDIRECT_START = "redirect_start";
+		String REDIRECT_END = "redirect_end";
+		String FETCH_START = "fetch_start";
+		String DOMAIN_LOOKUP_START = "domain_lookup_start";
+		String CONNECT_START = "connect_start";
+		String CONNECT_END = "connect_end";
+		String SECURE_CONNECTION_START = "secure_connection_start";
+		String REQUEST_START = "request_start";
+		String RESPONSE_START = "response_start";
+		String RESPONSE_END = "response_end";
+		String DOM_LOADING = "dom_loading";
+		String DOM_INTERACTIVE = "dom_interactive";
+		String DOM_CONTENT_LOADED_EVENT_START = "dom_content_loaded_event_start";
+		String DOM_CONTENT_LOADED_EVENT_END = "dom_content_loaded_event_end";
+		String DOM_COMPLETE = "dom_complete";
+		String LOAD_EVENT_START = "load_event_start";
 	}
 
 }

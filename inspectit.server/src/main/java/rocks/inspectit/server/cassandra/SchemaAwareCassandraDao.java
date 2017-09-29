@@ -1,9 +1,11 @@
 package rocks.inspectit.server.cassandra;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.function.Function;
 
 import javax.annotation.PostConstruct;
 
@@ -27,6 +29,8 @@ import rocks.inspectit.shared.all.communication.data.eum.AjaxRequest;
 import rocks.inspectit.shared.all.communication.data.eum.EUMSpan;
 import rocks.inspectit.shared.all.communication.data.eum.JSDomEvent;
 import rocks.inspectit.shared.all.communication.data.eum.PageLoadRequest;
+import rocks.inspectit.shared.all.communication.data.eum.PageLoadRequest.NavigationTimings;
+import rocks.inspectit.shared.all.communication.data.eum.ResourceLoadRequest;
 import rocks.inspectit.shared.all.communication.data.eum.UserSessionInfo;
 
 /**
@@ -41,6 +45,7 @@ public class SchemaAwareCassandraDao {
 	@Autowired
 	CassandraDao cassandra;
 
+	private PreparedStatement insertResourceLoad;
 	private PreparedStatement insertAjax;
 	private PreparedStatement insertPageLoad;
 	private PreparedStatement insertRootDomEvent;
@@ -92,6 +97,26 @@ public class SchemaAwareCassandraDao {
 		}
 	}
 
+	public void insertResourceload(Optional<UserSessionInfo> sessionInfo, ResourceLoadRequest resource) {
+		if (isSchemaSetUp) {
+			EUMSpan span = resource.getOwningSpan();
+			BoundStatement insert = insertResourceLoad.bind()
+					.setDate(CassandraSchema.ResourceLoadRequests.DAY, LocalDate.fromMillisSinceEpoch(span.getTimeStamp().getTime()))
+					.setTimestamp(CassandraSchema.ResourceLoadRequests.TIME, span.getTimeStamp())
+					.setLong(CassandraSchema.ResourceLoadRequests.TRACE_ID, span.getSpanIdent().getTraceId())
+					.setLong(CassandraSchema.ResourceLoadRequests.SPAN_ID, span.getSpanIdent().getId())
+					.setLong(CassandraSchema.ResourceLoadRequests.SESSION_ID, span.getSessionId())
+					.setLong(CassandraSchema.ResourceLoadRequests.TAB_ID, span.getTabId())
+					.setDouble(CassandraSchema.ResourceLoadRequests.DURATION, span.getDuration())
+					.setString(CassandraSchema.ResourceLoadRequests.URL, resource.getUrl()).setString(CassandraSchema.ResourceLoadRequests.BASE_URL, resource.getBaseUrl())
+					.setString(CassandraSchema.ResourceLoadRequests.INITIATOR_TYPE, resource.getInitiatorType())
+					.setLong(CassandraSchema.ResourceLoadRequests.TRANSFER_SIZE, resource.getTransferSize());
+			sessionInfo.ifPresent((s) -> addSessionInfoToInsert(s, insert));
+			listenForErrors(cassandra.execute(insert));
+		}
+	}
+
+
 
 	public void insertRootDomEvent(Optional<UserSessionInfo> sessionInfo, JSDomEvent action) {
 		if (isSchemaSetUp) {
@@ -112,9 +137,12 @@ public class SchemaAwareCassandraDao {
 		}
 	}
 
+	@SuppressWarnings("PMD.NullAssignment")
 	public void insertPageload(Optional<UserSessionInfo> sessionInfo, PageLoadRequest load) {
 		if (isSchemaSetUp) {
 			EUMSpan span = load.getOwningSpan();
+			final NavigationTimings nt = load.getNavigationTimings();
+			Function<Function<NavigationTimings, Double>, Timestamp> asTimestamp = (getter) -> (getter.apply(nt) != 0d ? new Timestamp(Math.round(getter.apply(nt))) : null);
 			BoundStatement insert = insertPageLoad.bind()
 					.setDate(CassandraSchema.PageLoadRequests.DAY, LocalDate.fromMillisSinceEpoch(span.getTimeStamp().getTime()))
 					.setTimestamp(CassandraSchema.PageLoadRequests.TIME, span.getTimeStamp())
@@ -123,7 +151,32 @@ public class SchemaAwareCassandraDao {
 					.setLong(CassandraSchema.PageLoadRequests.SESSION_ID, span.getSessionId())
 					.setLong(CassandraSchema.PageLoadRequests.TAB_ID, span.getTabId())
 					.setDouble(CassandraSchema.PageLoadRequests.DURATION, span.getDuration())
-					.setString(CassandraSchema.PageLoadRequests.URL, load.getUrl());
+					.setString(CassandraSchema.PageLoadRequests.URL, load.getUrl())
+					.setInt(CassandraSchema.PageLoadRequests.RESOURCE_COUNT, load.getResourceCount());
+			if (nt != null) {
+				insert.setTimestamp(CassandraSchema.PageLoadRequests.FIRST_PAINT, asTimestamp.apply(NavigationTimings::getFirstPaint))
+				.setTimestamp(CassandraSchema.PageLoadRequests.UNLOAD_EVENT_START, asTimestamp.apply(NavigationTimings::getUnloadEventStart))
+				.setTimestamp(CassandraSchema.PageLoadRequests.UNLOAD_EVENT_END, asTimestamp.apply(NavigationTimings::getUnloadEventEnd))
+				.setTimestamp(CassandraSchema.PageLoadRequests.REDIRECT_START, asTimestamp.apply(NavigationTimings::getRedirectStart))
+				.setTimestamp(CassandraSchema.PageLoadRequests.REDIRECT_END, asTimestamp.apply(NavigationTimings::getRedirectEnd))
+				.setTimestamp(CassandraSchema.PageLoadRequests.FETCH_START, asTimestamp.apply(NavigationTimings::getFetchStart))
+				.setTimestamp(CassandraSchema.PageLoadRequests.DOMAIN_LOOKUP_START, asTimestamp.apply(NavigationTimings::getDomainLookupStart))
+				.setTimestamp(CassandraSchema.PageLoadRequests.CONNECT_START, asTimestamp.apply(NavigationTimings::getConnectStart))
+				.setTimestamp(CassandraSchema.PageLoadRequests.CONNECT_END, asTimestamp.apply(NavigationTimings::getConnectEnd))
+				.setTimestamp(CassandraSchema.PageLoadRequests.SECURE_CONNECTION_START, asTimestamp.apply(NavigationTimings::getSecureConnectionStart))
+				.setTimestamp(CassandraSchema.PageLoadRequests.REQUEST_START, asTimestamp.apply(NavigationTimings::getRequestStart))
+				.setTimestamp(CassandraSchema.PageLoadRequests.RESPONSE_START, asTimestamp.apply(NavigationTimings::getResponseStart))
+				.setTimestamp(CassandraSchema.PageLoadRequests.RESPONSE_END, asTimestamp.apply(NavigationTimings::getResponseEnd))
+				.setTimestamp(CassandraSchema.PageLoadRequests.DOM_LOADING, asTimestamp.apply(NavigationTimings::getDomLoading))
+				.setTimestamp(CassandraSchema.PageLoadRequests.DOM_INTERACTIVE, asTimestamp.apply(NavigationTimings::getDomInteractive))
+				.setTimestamp(CassandraSchema.PageLoadRequests.DOM_CONTENT_LOADED_EVENT_START, asTimestamp.apply(NavigationTimings::getDomContentLoadedEventStart))
+				.setTimestamp(CassandraSchema.PageLoadRequests.DOM_CONTENT_LOADED_EVENT_END, asTimestamp.apply(NavigationTimings::getDomContentLoadedEventEnd))
+				.setTimestamp(CassandraSchema.PageLoadRequests.DOM_COMPLETE, asTimestamp.apply(NavigationTimings::getDomComplete))
+				.setTimestamp(CassandraSchema.PageLoadRequests.LOAD_EVENT_START, asTimestamp.apply(NavigationTimings::getLoadEventStart));
+				if (nt.getSpeedIndex() != 0d) {
+					insert.setDouble(CassandraSchema.PageLoadRequests.SPEEDINDEX, nt.getSpeedIndex());
+				}
+			}
 			sessionInfo.ifPresent((s) -> addSessionInfoToInsert(s, insert));
 			listenForErrors(cassandra.execute(insert));
 		}
@@ -175,6 +228,23 @@ public class SchemaAwareCassandraDao {
 				.addColumn(CassandraSchema.AjaxRequests.URL, DataType.text())
 				.addColumn(CassandraSchema.AjaxRequests.BASE_URL, DataType.text())
 				.addColumn(CassandraSchema.AjaxRequests.STATUS, DataType.cint()));
+		ListenableFuture<ResultSet> resourceFut = cassandra.execute(
+				SchemaBuilder.createTable(CassandraSchema.ResourceLoadRequests.TABLE_NAME)
+				.ifNotExists()
+				.addPartitionKey(CassandraSchema.ResourceLoadRequests.DAY, DataType.date())
+				.addClusteringColumn(CassandraSchema.ResourceLoadRequests.TIME, DataType.timestamp())
+				.addClusteringColumn(CassandraSchema.ResourceLoadRequests.SPAN_ID, DataType.bigint())
+				.addColumn(CassandraSchema.ResourceLoadRequests.TRACE_ID, DataType.bigint())
+				.addColumn(CassandraSchema.ResourceLoadRequests.SESSION_ID, DataType.bigint())
+				.addColumn(CassandraSchema.ResourceLoadRequests.TAB_ID, DataType.bigint())
+				.addColumn(CassandraSchema.ResourceLoadRequests.BROWSER, DataType.text())
+				.addColumn(CassandraSchema.ResourceLoadRequests.DEVICE, DataType.text())
+				.addColumn(CassandraSchema.ResourceLoadRequests.LANGUAGE, DataType.text())
+				.addColumn(CassandraSchema.ResourceLoadRequests.DURATION, DataType.cdouble())
+				.addColumn(CassandraSchema.ResourceLoadRequests.URL, DataType.text())
+				.addColumn(CassandraSchema.ResourceLoadRequests.BASE_URL, DataType.text())
+				.addColumn(CassandraSchema.ResourceLoadRequests.TRANSFER_SIZE, DataType.bigint())
+				.addColumn(CassandraSchema.ResourceLoadRequests.INITIATOR_TYPE, DataType.text()));
 		ListenableFuture<ResultSet> pageloadFut = cassandra.execute(
 				SchemaBuilder.createTable(CassandraSchema.PageLoadRequests.TABLE_NAME)
 				.ifNotExists()
@@ -188,7 +258,28 @@ public class SchemaAwareCassandraDao {
 				.addColumn(CassandraSchema.PageLoadRequests.DEVICE, DataType.text())
 				.addColumn(CassandraSchema.PageLoadRequests.LANGUAGE, DataType.text())
 				.addColumn(CassandraSchema.PageLoadRequests.DURATION, DataType.cdouble())
-				.addColumn(CassandraSchema.PageLoadRequests.URL, DataType.text()));
+				.addColumn(CassandraSchema.PageLoadRequests.URL, DataType.text())
+				.addColumn(CassandraSchema.PageLoadRequests.RESOURCE_COUNT, DataType.cint())
+				.addColumn(CassandraSchema.PageLoadRequests.SPEEDINDEX, DataType.cdouble())
+				.addColumn(CassandraSchema.PageLoadRequests.FIRST_PAINT, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.UNLOAD_EVENT_START, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.UNLOAD_EVENT_END, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.REDIRECT_START, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.REDIRECT_END, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.FETCH_START, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.DOMAIN_LOOKUP_START, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.CONNECT_START, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.CONNECT_END, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.SECURE_CONNECTION_START, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.REQUEST_START, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.RESPONSE_START, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.RESPONSE_END, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.DOM_LOADING, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.DOM_INTERACTIVE, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.DOM_CONTENT_LOADED_EVENT_START, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.DOM_CONTENT_LOADED_EVENT_END, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.DOM_COMPLETE, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.LOAD_EVENT_START, DataType.timestamp()));
 		ListenableFuture<ResultSet> domEventsFut = cassandra.execute(
 				SchemaBuilder.createTable(CassandraSchema.RootDomEvents.TABLE_NAME)
 				.ifNotExists()
@@ -206,7 +297,7 @@ public class SchemaAwareCassandraDao {
 				.addColumn(CassandraSchema.RootDomEvents.ACTION_TYPE, DataType.text())
 				.addColumn(CassandraSchema.RootDomEvents.ELEMENT_INFO, DataType.map(DataType.text(), DataType.text())));
 		@SuppressWarnings("unchecked")
-		ListenableFuture<List<ResultSet>> allFutures = Futures.allAsList(ajaxFut, pageloadFut, domEventsFut);
+		ListenableFuture<List<ResultSet>> allFutures = Futures.allAsList(ajaxFut, pageloadFut, resourceFut, domEventsFut);
 		return allFutures;
 	}
 
@@ -226,6 +317,21 @@ public class SchemaAwareCassandraDao {
 				.value(CassandraSchema.AjaxRequests.URL, QueryBuilder.bindMarker(CassandraSchema.AjaxRequests.URL))
 				.value(CassandraSchema.AjaxRequests.BASE_URL, QueryBuilder.bindMarker(CassandraSchema.AjaxRequests.BASE_URL))
 				.value(CassandraSchema.AjaxRequests.STATUS, QueryBuilder.bindMarker(CassandraSchema.AjaxRequests.STATUS)));
+		ListenableFuture<PreparedStatement> resourceFut = cassandra.prepare(QueryBuilder.insertInto(CassandraSchema.ResourceLoadRequests.TABLE_NAME)
+				.value(CassandraSchema.ResourceLoadRequests.DAY, QueryBuilder.bindMarker(CassandraSchema.ResourceLoadRequests.DAY))
+				.value(CassandraSchema.ResourceLoadRequests.TIME, QueryBuilder.bindMarker(CassandraSchema.ResourceLoadRequests.TIME))
+				.value(CassandraSchema.ResourceLoadRequests.TRACE_ID, QueryBuilder.bindMarker(CassandraSchema.ResourceLoadRequests.TRACE_ID))
+				.value(CassandraSchema.ResourceLoadRequests.SPAN_ID, QueryBuilder.bindMarker(CassandraSchema.ResourceLoadRequests.SPAN_ID))
+				.value(CassandraSchema.ResourceLoadRequests.SESSION_ID, QueryBuilder.bindMarker(CassandraSchema.ResourceLoadRequests.SESSION_ID))
+				.value(CassandraSchema.ResourceLoadRequests.TAB_ID, QueryBuilder.bindMarker(CassandraSchema.ResourceLoadRequests.TAB_ID))
+				.value(CassandraSchema.ResourceLoadRequests.BROWSER, QueryBuilder.bindMarker(CassandraSchema.ResourceLoadRequests.BROWSER))
+				.value(CassandraSchema.ResourceLoadRequests.DEVICE, QueryBuilder.bindMarker(CassandraSchema.ResourceLoadRequests.DEVICE))
+				.value(CassandraSchema.ResourceLoadRequests.LANGUAGE, QueryBuilder.bindMarker(CassandraSchema.ResourceLoadRequests.LANGUAGE))
+				.value(CassandraSchema.ResourceLoadRequests.DURATION, QueryBuilder.bindMarker(CassandraSchema.ResourceLoadRequests.DURATION))
+				.value(CassandraSchema.ResourceLoadRequests.URL, QueryBuilder.bindMarker(CassandraSchema.ResourceLoadRequests.URL))
+				.value(CassandraSchema.ResourceLoadRequests.BASE_URL, QueryBuilder.bindMarker(CassandraSchema.ResourceLoadRequests.BASE_URL))
+				.value(CassandraSchema.ResourceLoadRequests.TRANSFER_SIZE, QueryBuilder.bindMarker(CassandraSchema.ResourceLoadRequests.TRANSFER_SIZE))
+				.value(CassandraSchema.ResourceLoadRequests.INITIATOR_TYPE, QueryBuilder.bindMarker(CassandraSchema.ResourceLoadRequests.INITIATOR_TYPE)));
 		ListenableFuture<PreparedStatement> domEventsFut =  cassandra.prepare(
 				QueryBuilder.insertInto(CassandraSchema.RootDomEvents.TABLE_NAME)
 				.value(CassandraSchema.RootDomEvents.DAY, QueryBuilder.bindMarker(CassandraSchema.RootDomEvents.DAY))
@@ -241,28 +347,48 @@ public class SchemaAwareCassandraDao {
 				.value(CassandraSchema.RootDomEvents.BASE_URL, QueryBuilder.bindMarker(CassandraSchema.RootDomEvents.BASE_URL))
 				.value(CassandraSchema.RootDomEvents.ACTION_TYPE, QueryBuilder.bindMarker(CassandraSchema.RootDomEvents.ACTION_TYPE))
 				.value(CassandraSchema.RootDomEvents.ELEMENT_INFO, QueryBuilder.bindMarker(CassandraSchema.RootDomEvents.ELEMENT_INFO)));
-		ListenableFuture<PreparedStatement> pageloadFut = cassandra
-				.prepare(
-						QueryBuilder.insertInto(CassandraSchema.PageLoadRequests.TABLE_NAME)
-						.value(CassandraSchema.PageLoadRequests.DAY, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.DAY))
-						.value(CassandraSchema.PageLoadRequests.TIME, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.TIME))
-						.value(CassandraSchema.PageLoadRequests.TRACE_ID, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.TRACE_ID))
-						.value(CassandraSchema.PageLoadRequests.SPAN_ID, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.SPAN_ID))
-						.value(CassandraSchema.PageLoadRequests.SESSION_ID, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.SESSION_ID))
-						.value(CassandraSchema.PageLoadRequests.TAB_ID, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.TAB_ID))
-						.value(CassandraSchema.PageLoadRequests.BROWSER, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.BROWSER))
-						.value(CassandraSchema.PageLoadRequests.DEVICE, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.DEVICE))
-						.value(CassandraSchema.PageLoadRequests.LANGUAGE, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.LANGUAGE))
-						.value(CassandraSchema.PageLoadRequests.DURATION, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.DURATION))
-						.value(CassandraSchema.PageLoadRequests.URL, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.URL)));
-
+		ListenableFuture<PreparedStatement> pageloadFut = cassandra.prepare(
+				QueryBuilder.insertInto(CassandraSchema.PageLoadRequests.TABLE_NAME)
+				.value(CassandraSchema.PageLoadRequests.DAY, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.DAY))
+				.value(CassandraSchema.PageLoadRequests.TIME, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.TIME))
+				.value(CassandraSchema.PageLoadRequests.TRACE_ID, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.TRACE_ID))
+				.value(CassandraSchema.PageLoadRequests.SPAN_ID, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.SPAN_ID))
+				.value(CassandraSchema.PageLoadRequests.SESSION_ID, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.SESSION_ID))
+				.value(CassandraSchema.PageLoadRequests.TAB_ID, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.TAB_ID))
+				.value(CassandraSchema.PageLoadRequests.BROWSER, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.BROWSER))
+				.value(CassandraSchema.PageLoadRequests.DEVICE, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.DEVICE))
+				.value(CassandraSchema.PageLoadRequests.LANGUAGE, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.LANGUAGE))
+				.value(CassandraSchema.PageLoadRequests.DURATION, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.DURATION))
+				.value(CassandraSchema.PageLoadRequests.URL, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.URL))
+				.value(CassandraSchema.PageLoadRequests.RESOURCE_COUNT, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.RESOURCE_COUNT))
+				.value(CassandraSchema.PageLoadRequests.SPEEDINDEX, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.SPEEDINDEX))
+				.value(CassandraSchema.PageLoadRequests.FIRST_PAINT, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.FIRST_PAINT))
+				.value(CassandraSchema.PageLoadRequests.UNLOAD_EVENT_START, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.UNLOAD_EVENT_START))
+				.value(CassandraSchema.PageLoadRequests.UNLOAD_EVENT_END, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.UNLOAD_EVENT_END))
+				.value(CassandraSchema.PageLoadRequests.REDIRECT_START, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.REDIRECT_START))
+				.value(CassandraSchema.PageLoadRequests.REDIRECT_END, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.REDIRECT_END))
+				.value(CassandraSchema.PageLoadRequests.FETCH_START, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.FETCH_START))
+				.value(CassandraSchema.PageLoadRequests.DOMAIN_LOOKUP_START, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.DOMAIN_LOOKUP_START))
+				.value(CassandraSchema.PageLoadRequests.CONNECT_START, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.CONNECT_START))
+				.value(CassandraSchema.PageLoadRequests.CONNECT_END, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.CONNECT_END))
+				.value(CassandraSchema.PageLoadRequests.SECURE_CONNECTION_START, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.SECURE_CONNECTION_START))
+				.value(CassandraSchema.PageLoadRequests.REQUEST_START, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.REQUEST_START))
+				.value(CassandraSchema.PageLoadRequests.RESPONSE_START, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.RESPONSE_START))
+				.value(CassandraSchema.PageLoadRequests.RESPONSE_END, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.RESPONSE_END))
+				.value(CassandraSchema.PageLoadRequests.DOM_LOADING, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.DOM_LOADING))
+				.value(CassandraSchema.PageLoadRequests.DOM_INTERACTIVE, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.DOM_INTERACTIVE))
+				.value(CassandraSchema.PageLoadRequests.DOM_CONTENT_LOADED_EVENT_START, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.DOM_CONTENT_LOADED_EVENT_START))
+				.value(CassandraSchema.PageLoadRequests.DOM_CONTENT_LOADED_EVENT_END, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.DOM_CONTENT_LOADED_EVENT_END))
+				.value(CassandraSchema.PageLoadRequests.DOM_COMPLETE, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.DOM_COMPLETE))
+				.value(CassandraSchema.PageLoadRequests.LOAD_EVENT_START, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.LOAD_EVENT_START)));
 		@SuppressWarnings("unchecked")
-		ListenableFuture<List<PreparedStatement>> allFutures = Futures.allAsList(ajaxFut, pageloadFut, domEventsFut);
+		ListenableFuture<List<PreparedStatement>> allFutures = Futures.allAsList(resourceFut, ajaxFut, pageloadFut, domEventsFut);
 		allFutures.addListener(() -> {
 			try {
 				insertAjax = ajaxFut.get();
 				insertRootDomEvent = domEventsFut.get();
 				insertPageLoad = pageloadFut.get();
+				insertResourceLoad = resourceFut.get();
 			} catch (Exception e) {
 				LOG.error("Error preparing statements: ", e);
 			}

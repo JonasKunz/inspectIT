@@ -28,6 +28,7 @@ import rocks.inspectit.shared.all.communication.data.eum.EUMBeaconElement;
 import rocks.inspectit.shared.all.communication.data.eum.EUMSpan;
 import rocks.inspectit.shared.all.communication.data.eum.JSDomEvent;
 import rocks.inspectit.shared.all.communication.data.eum.PageLoadRequest;
+import rocks.inspectit.shared.all.communication.data.eum.ResourceLoadRequest;
 import rocks.inspectit.shared.all.communication.data.eum.UserSessionInfo;
 
 /**
@@ -72,6 +73,8 @@ public class CassandraWriterProcessor extends AbstractCmrDataProcessor {
 			cassandra.insertRootDomEvent(sessionInfo, (JSDomEvent) details);
 		} else if (details instanceof PageLoadRequest) {
 			cassandra.insertPageload(sessionInfo, (PageLoadRequest) details);
+		} else if (details instanceof ResourceLoadRequest) {
+			cassandra.insertResourceload(sessionInfo, (ResourceLoadRequest) details);
 		}
 	}
 

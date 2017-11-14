@@ -21,7 +21,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Cluster.Builder;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.RegularStatement;
 import com.datastax.driver.core.ResultSet;
@@ -48,13 +47,11 @@ import rocks.inspectit.shared.all.externalservice.ExternalServiceType;
 @Component
 public class CassandraDao implements IExternalService {
 
-	private static final int PING_FREQUENCY = 5000;
-
 	private static final Logger LOG = LoggerFactory.getLogger(CassandraDao.class);
 
-	private static final int MAX_PARALLEL_QUERIES = 500;
+	static final int MAX_PARALLEL_QUERIES = 500;
 
-	private static final int MAX_QUEUE_SIZE = MAX_PARALLEL_QUERIES * 10;
+	static final int MAX_QUEUE_SIZE = MAX_PARALLEL_QUERIES * 10;
 
 	@Value("${cassandra.active}")
 	boolean active;
@@ -62,30 +59,12 @@ public class CassandraDao implements IExternalService {
 	@Value("${cassandra.keyspace}")
 	String keyspaceName;
 
-	@Value("${cassandra.hosts}")
-	String hosts;
-
-	@Value("${cassandra.port}")
-	int port;
-
-	@Value("${cassandra.user}")
-	String user;
-
-	@Value("${cassandra.passwd}")
-	String password;
-
-	@Value("${cassandra.ssl}")
-	boolean useSSL;
-
-	/**
-	 * The retention policy to use.
-	 */
-	@Value("${influxdb.retentionPolicy}")
-	String retentionPolicy;
+	@Autowired
+	CassandraClusterFactory cassandraFactory;
 
 	@Autowired
 	@Resource(name = "scheduledExecutorService")
-	private ScheduledExecutorService scheduledExecutorService;
+	ScheduledExecutorService scheduledExecutorService;
 
 	private Cluster cluster;
 	private Session session;
@@ -137,18 +116,7 @@ public class CassandraDao implements IExternalService {
 
 	private synchronized void connect() {
 		try {
-			Builder connectionBuilder = Cluster.builder();
-			connectionBuilder.withPort(port);
-			for (String host : hosts.split(",")) {
-				connectionBuilder.addContactPoint(host);
-			}
-			if (useSSL) {
-				connectionBuilder.withSSL();
-			}
-			if (!user.isEmpty()) {
-				connectionBuilder.withCredentials(user, password);
-			}
-			cluster = connectionBuilder.build();
+			cluster = cassandraFactory.connectToCluster();
 			session = cluster.connect();
 			session.execute("CREATE KEYSPACE IF NOT EXISTS " + keyspaceName + " WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 1}");
 			session.execute("USE " + keyspaceName);
@@ -180,7 +148,13 @@ public class CassandraDao implements IExternalService {
 	}
 
 	public ListenableFuture<PreparedStatement> prepare(RegularStatement query) {
-		return session.prepareAsync(query);
+		if (!isConnected) {
+			SettableFuture<PreparedStatement> result = SettableFuture.create();
+			result.setException(new IllegalStateException("Cassandra is not connected!"));
+			return result;
+		} else {
+			return session.prepareAsync(query);
+		}
 	}
 
 	private void startQueryExecutor() {
@@ -191,15 +165,15 @@ public class CassandraDao implements IExternalService {
 					QueryTask task = queryQueue.take();
 					queryExecutorPool.acquire();
 					// start the query
-					ResultSetFuture resultFuture = session.executeAsync(task.query);
+					ResultSetFuture queryResultFuture = session.executeAsync(task.query);
 					runningQueries.add(task);
 					// add cleanup mechanism
-					resultFuture.addListener(() -> {
+					queryResultFuture.addListener(() -> {
 						runningQueries.remove(task);
 						queryExecutorPool.release();
 					}, MoreExecutors.directExecutor());
 					// update the nested future to let clients listen to it
-					task.resultFuture.set(resultFuture);
+					task.resultFuture.set(queryResultFuture);
 
 				}
 			} catch (InterruptedException e) {

@@ -43,7 +43,7 @@ public interface CassandraSchema {
 	public interface RootDomEvents extends EumTable {
 		String TABLE_NAME = "root_dom_events";
 
-		String DURATION = "duration";
+		String RELEVANT_THROUGH_SELECTOR = "relevant_through_selector";
 		String BASE_URL = "base_url";
 		String ACTION_TYPE = "action_type";
 		String ELEMENT_INFO = "element_info";

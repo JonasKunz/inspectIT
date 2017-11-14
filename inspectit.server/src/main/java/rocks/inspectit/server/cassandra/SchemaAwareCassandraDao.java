@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import javax.annotation.PostConstruct;
@@ -50,12 +51,12 @@ public class SchemaAwareCassandraDao {
 	private PreparedStatement insertPageLoad;
 	private PreparedStatement insertRootDomEvent;
 
-	private boolean isSchemaSetUp = false;
+	private AtomicBoolean isConnectedAndSchemaSetUp = new AtomicBoolean(false);
 
 	private CassandraConnectionStateListener connectionListener = new CassandraConnectionStateListener() {
 		@Override
 		public void disconnected(CassandraDao cassandra) {
-			isSchemaSetUp = false;
+			isConnectedAndSchemaSetUp.set(false);
 		}
 
 		@Override
@@ -79,7 +80,7 @@ public class SchemaAwareCassandraDao {
 	}
 
 	public void insertAjax(Optional<UserSessionInfo> sessionInfo, AjaxRequest ajax) {
-		if (isSchemaSetUp) {
+		if (isConnectedAndSchemaSetUp.get()) {
 			EUMSpan span = ajax.getOwningSpan();
 			BoundStatement insert = insertAjax.bind()
 					.setDate(CassandraSchema.AjaxRequests.DAY, LocalDate.fromMillisSinceEpoch(span.getTimeStamp().getTime()))
@@ -98,7 +99,7 @@ public class SchemaAwareCassandraDao {
 	}
 
 	public void insertResourceload(Optional<UserSessionInfo> sessionInfo, ResourceLoadRequest resource) {
-		if (isSchemaSetUp) {
+		if (isConnectedAndSchemaSetUp.get()) {
 			EUMSpan span = resource.getOwningSpan();
 			BoundStatement insert = insertResourceLoad.bind()
 					.setDate(CassandraSchema.ResourceLoadRequests.DAY, LocalDate.fromMillisSinceEpoch(span.getTimeStamp().getTime()))
@@ -119,7 +120,7 @@ public class SchemaAwareCassandraDao {
 
 
 	public void insertRootDomEvent(Optional<UserSessionInfo> sessionInfo, JSDomEvent action) {
-		if (isSchemaSetUp) {
+		if (isConnectedAndSchemaSetUp.get()) {
 			EUMSpan span = action.getOwningSpan();
 			BoundStatement insert = insertRootDomEvent.bind()
 					.setDate(CassandraSchema.RootDomEvents.DAY, LocalDate.fromMillisSinceEpoch(span.getTimeStamp().getTime()))
@@ -128,7 +129,7 @@ public class SchemaAwareCassandraDao {
 					.setLong(CassandraSchema.RootDomEvents.SPAN_ID, span.getSpanIdent().getId())
 					.setLong(CassandraSchema.RootDomEvents.SESSION_ID, span.getSessionId())
 					.setLong(CassandraSchema.RootDomEvents.TAB_ID, span.getTabId())
-					.setDouble(CassandraSchema.RootDomEvents.DURATION, span.getDuration())
+					.setBool(CassandraSchema.RootDomEvents.RELEVANT_THROUGH_SELECTOR, action.isRelevantThroughSelector())
 					.setString(CassandraSchema.RootDomEvents.BASE_URL, action.getBaseUrl())
 					.setString(CassandraSchema.RootDomEvents.ACTION_TYPE, action.getEventType())
 					.setMap(CassandraSchema.RootDomEvents.ELEMENT_INFO, action.getElementInfo());
@@ -139,7 +140,7 @@ public class SchemaAwareCassandraDao {
 
 	@SuppressWarnings("PMD.NullAssignment")
 	public void insertPageload(Optional<UserSessionInfo> sessionInfo, PageLoadRequest load) {
-		if (isSchemaSetUp) {
+		if (isConnectedAndSchemaSetUp.get()) {
 			EUMSpan span = load.getOwningSpan();
 			final NavigationTimings nt = load.getNavigationTimings();
 			Function<Function<NavigationTimings, Double>, Timestamp> asTimestamp = (getter) -> (getter.apply(nt) != 0d ? new Timestamp(Math.round(getter.apply(nt))) : null);
@@ -194,8 +195,10 @@ public class SchemaAwareCassandraDao {
 		future.addListener(() -> {
 			try {
 				future.get();
-			} catch (InterruptedException | ExecutionException e) {
-				LOG.error("Error executing query!", e);
+			} catch (ExecutionException e) {
+				LOG.error("Error executing query!", e.getCause());
+			} catch (InterruptedException e) {
+				LOG.error("Query interrupted!", e.getCause());
 			}
 		}, MoreExecutors.directExecutor());
 	}
@@ -204,10 +207,10 @@ public class SchemaAwareCassandraDao {
 		try {
 			initEUMTables().get();
 			prepareEUMStatements().get();
-			isSchemaSetUp = true;
+			isConnectedAndSchemaSetUp.set(true);
 		} catch (Exception e) {
 			LOG.error("Error setting up schema", e);
-			isSchemaSetUp = false;
+			isConnectedAndSchemaSetUp.set(false);
 		}
 	}
 
@@ -292,7 +295,7 @@ public class SchemaAwareCassandraDao {
 				.addColumn(CassandraSchema.RootDomEvents.BROWSER, DataType.text())
 				.addColumn(CassandraSchema.RootDomEvents.DEVICE, DataType.text())
 				.addColumn(CassandraSchema.RootDomEvents.LANGUAGE, DataType.text())
-				.addColumn(CassandraSchema.RootDomEvents.DURATION, DataType.cdouble())
+				.addColumn(CassandraSchema.RootDomEvents.RELEVANT_THROUGH_SELECTOR, DataType.cboolean())
 				.addColumn(CassandraSchema.RootDomEvents.BASE_URL, DataType.text())
 				.addColumn(CassandraSchema.RootDomEvents.ACTION_TYPE, DataType.text())
 				.addColumn(CassandraSchema.RootDomEvents.ELEMENT_INFO, DataType.map(DataType.text(), DataType.text())));
@@ -343,7 +346,7 @@ public class SchemaAwareCassandraDao {
 				.value(CassandraSchema.RootDomEvents.BROWSER, QueryBuilder.bindMarker(CassandraSchema.RootDomEvents.BROWSER))
 				.value(CassandraSchema.RootDomEvents.DEVICE, QueryBuilder.bindMarker(CassandraSchema.RootDomEvents.DEVICE))
 				.value(CassandraSchema.RootDomEvents.LANGUAGE, QueryBuilder.bindMarker(CassandraSchema.RootDomEvents.LANGUAGE))
-				.value(CassandraSchema.RootDomEvents.DURATION, QueryBuilder.bindMarker(CassandraSchema.RootDomEvents.DURATION))
+				.value(CassandraSchema.RootDomEvents.RELEVANT_THROUGH_SELECTOR, QueryBuilder.bindMarker(CassandraSchema.RootDomEvents.RELEVANT_THROUGH_SELECTOR))
 				.value(CassandraSchema.RootDomEvents.BASE_URL, QueryBuilder.bindMarker(CassandraSchema.RootDomEvents.BASE_URL))
 				.value(CassandraSchema.RootDomEvents.ACTION_TYPE, QueryBuilder.bindMarker(CassandraSchema.RootDomEvents.ACTION_TYPE))
 				.value(CassandraSchema.RootDomEvents.ELEMENT_INFO, QueryBuilder.bindMarker(CassandraSchema.RootDomEvents.ELEMENT_INFO)));

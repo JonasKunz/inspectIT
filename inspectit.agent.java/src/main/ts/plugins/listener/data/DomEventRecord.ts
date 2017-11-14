@@ -28,6 +28,7 @@ class DomEventRecord extends TraceElement {
         dto.eventType = this.eventType;
         dto.elementInfo = this.elementInfo;
         dto.baseUrl = this.baseUrl;
+        dto.relevantThroughSelector = this.relevantThroughSelector;
         return dto;
     }
 }

@@ -162,6 +162,7 @@ public class SchemaAwareCassandraDao {
 				.setTimestamp(CassandraSchema.PageLoadRequests.REDIRECT_END, asTimestamp.apply(NavigationTimings::getRedirectEnd))
 				.setTimestamp(CassandraSchema.PageLoadRequests.FETCH_START, asTimestamp.apply(NavigationTimings::getFetchStart))
 				.setTimestamp(CassandraSchema.PageLoadRequests.DOMAIN_LOOKUP_START, asTimestamp.apply(NavigationTimings::getDomainLookupStart))
+				.setTimestamp(CassandraSchema.PageLoadRequests.DOMAIN_LOOKUP_END, asTimestamp.apply(NavigationTimings::getDomainLookupEnd))
 				.setTimestamp(CassandraSchema.PageLoadRequests.CONNECT_START, asTimestamp.apply(NavigationTimings::getConnectStart))
 				.setTimestamp(CassandraSchema.PageLoadRequests.CONNECT_END, asTimestamp.apply(NavigationTimings::getConnectEnd))
 				.setTimestamp(CassandraSchema.PageLoadRequests.SECURE_CONNECTION_START, asTimestamp.apply(NavigationTimings::getSecureConnectionStart))
@@ -173,7 +174,8 @@ public class SchemaAwareCassandraDao {
 				.setTimestamp(CassandraSchema.PageLoadRequests.DOM_CONTENT_LOADED_EVENT_START, asTimestamp.apply(NavigationTimings::getDomContentLoadedEventStart))
 				.setTimestamp(CassandraSchema.PageLoadRequests.DOM_CONTENT_LOADED_EVENT_END, asTimestamp.apply(NavigationTimings::getDomContentLoadedEventEnd))
 				.setTimestamp(CassandraSchema.PageLoadRequests.DOM_COMPLETE, asTimestamp.apply(NavigationTimings::getDomComplete))
-				.setTimestamp(CassandraSchema.PageLoadRequests.LOAD_EVENT_START, asTimestamp.apply(NavigationTimings::getLoadEventStart));
+				.setTimestamp(CassandraSchema.PageLoadRequests.LOAD_EVENT_START, asTimestamp.apply(NavigationTimings::getLoadEventStart))
+				.setTimestamp(CassandraSchema.PageLoadRequests.LOAD_EVENT_END, asTimestamp.apply(NavigationTimings::getLoadEventEnd));
 				if (nt.getSpeedIndex() != 0d) {
 					insert.setDouble(CassandraSchema.PageLoadRequests.SPEEDINDEX, nt.getSpeedIndex());
 				}
@@ -271,6 +273,7 @@ public class SchemaAwareCassandraDao {
 				.addColumn(CassandraSchema.PageLoadRequests.REDIRECT_END, DataType.timestamp())
 				.addColumn(CassandraSchema.PageLoadRequests.FETCH_START, DataType.timestamp())
 				.addColumn(CassandraSchema.PageLoadRequests.DOMAIN_LOOKUP_START, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.DOMAIN_LOOKUP_END, DataType.timestamp())
 				.addColumn(CassandraSchema.PageLoadRequests.CONNECT_START, DataType.timestamp())
 				.addColumn(CassandraSchema.PageLoadRequests.CONNECT_END, DataType.timestamp())
 				.addColumn(CassandraSchema.PageLoadRequests.SECURE_CONNECTION_START, DataType.timestamp())
@@ -282,7 +285,8 @@ public class SchemaAwareCassandraDao {
 				.addColumn(CassandraSchema.PageLoadRequests.DOM_CONTENT_LOADED_EVENT_START, DataType.timestamp())
 				.addColumn(CassandraSchema.PageLoadRequests.DOM_CONTENT_LOADED_EVENT_END, DataType.timestamp())
 				.addColumn(CassandraSchema.PageLoadRequests.DOM_COMPLETE, DataType.timestamp())
-				.addColumn(CassandraSchema.PageLoadRequests.LOAD_EVENT_START, DataType.timestamp()));
+				.addColumn(CassandraSchema.PageLoadRequests.LOAD_EVENT_START, DataType.timestamp())
+				.addColumn(CassandraSchema.PageLoadRequests.LOAD_EVENT_END, DataType.timestamp()));
 		ListenableFuture<ResultSet> domEventsFut = cassandra.execute(
 				SchemaBuilder.createTable(CassandraSchema.RootDomEvents.TABLE_NAME)
 				.ifNotExists()
@@ -372,6 +376,7 @@ public class SchemaAwareCassandraDao {
 				.value(CassandraSchema.PageLoadRequests.REDIRECT_END, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.REDIRECT_END))
 				.value(CassandraSchema.PageLoadRequests.FETCH_START, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.FETCH_START))
 				.value(CassandraSchema.PageLoadRequests.DOMAIN_LOOKUP_START, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.DOMAIN_LOOKUP_START))
+				.value(CassandraSchema.PageLoadRequests.DOMAIN_LOOKUP_END, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.DOMAIN_LOOKUP_END))
 				.value(CassandraSchema.PageLoadRequests.CONNECT_START, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.CONNECT_START))
 				.value(CassandraSchema.PageLoadRequests.CONNECT_END, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.CONNECT_END))
 				.value(CassandraSchema.PageLoadRequests.SECURE_CONNECTION_START, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.SECURE_CONNECTION_START))
@@ -383,7 +388,8 @@ public class SchemaAwareCassandraDao {
 				.value(CassandraSchema.PageLoadRequests.DOM_CONTENT_LOADED_EVENT_START, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.DOM_CONTENT_LOADED_EVENT_START))
 				.value(CassandraSchema.PageLoadRequests.DOM_CONTENT_LOADED_EVENT_END, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.DOM_CONTENT_LOADED_EVENT_END))
 				.value(CassandraSchema.PageLoadRequests.DOM_COMPLETE, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.DOM_COMPLETE))
-				.value(CassandraSchema.PageLoadRequests.LOAD_EVENT_START, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.LOAD_EVENT_START)));
+				.value(CassandraSchema.PageLoadRequests.LOAD_EVENT_START, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.LOAD_EVENT_START))
+				.value(CassandraSchema.PageLoadRequests.LOAD_EVENT_END, QueryBuilder.bindMarker(CassandraSchema.PageLoadRequests.LOAD_EVENT_END)));
 		@SuppressWarnings("unchecked")
 		ListenableFuture<List<PreparedStatement>> allFutures = Futures.allAsList(resourceFut, ajaxFut, pageloadFut, domEventsFut);
 		allFutures.addListener(() -> {

@@ -66,6 +66,7 @@ public interface CassandraSchema {
 		String REDIRECT_END = "redirect_end";
 		String FETCH_START = "fetch_start";
 		String DOMAIN_LOOKUP_START = "domain_lookup_start";
+		String DOMAIN_LOOKUP_END = "domain_lookup_end";
 		String CONNECT_START = "connect_start";
 		String CONNECT_END = "connect_end";
 		String SECURE_CONNECTION_START = "secure_connection_start";
@@ -78,6 +79,7 @@ public interface CassandraSchema {
 		String DOM_CONTENT_LOADED_EVENT_END = "dom_content_loaded_event_end";
 		String DOM_COMPLETE = "dom_complete";
 		String LOAD_EVENT_START = "load_event_start";
+		String LOAD_EVENT_END = "load_event_end";
 	}
 
 }

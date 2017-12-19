@@ -42,6 +42,18 @@ public class EumDomEventSelector {
 	private boolean alwaysRelevant;
 
 	/**
+	 * See {@link AgentEumDomEventSelector#considerBubbling}.
+	 */
+	@XmlAttribute(name = "considerBubbling", required = true)
+	private boolean considerBubbling;
+
+	/**
+	 * See {@link AgentEumDomEventSelector#storagePrefix}.
+	 */
+	@XmlAttribute(name = "storagePrefix", required = true)
+	private String storagePrefix;
+
+	/**
 	 * Gets {@link #eventsList}.
 	 *
 	 * @return {@link #eventsList}
@@ -118,6 +130,44 @@ public class EumDomEventSelector {
 	}
 
 	/**
+	 * Gets {@link #considerBubbling}.
+	 *
+	 * @return {@link #considerBubbling}
+	 */
+	public boolean isConsiderBubbling() {
+		return this.considerBubbling;
+	}
+
+	/**
+	 * Sets {@link #considerBubbling}.
+	 *
+	 * @param considerBubbling
+	 *            New value for {@link #considerBubbling}
+	 */
+	public void setConsiderBubbling(boolean considerBubbling) {
+		this.considerBubbling = considerBubbling;
+	}
+
+	/**
+	 * Gets {@link #storagePrefix}.
+	 *
+	 * @return {@link #storagePrefix}
+	 */
+	public String getStoragePrefix() {
+		return this.storagePrefix;
+	}
+
+	/**
+	 * Sets {@link #storagePrefix}.
+	 *
+	 * @param storagePrefix
+	 *            New value for {@link #storagePrefix}
+	 */
+	public void setStoragePrefix(String storagePrefix) {
+		this.storagePrefix = storagePrefix;
+	}
+
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
@@ -126,8 +176,10 @@ public class EumDomEventSelector {
 		int result = 1;
 		result = (prime * result) + (this.alwaysRelevant ? 1231 : 1237);
 		result = (prime * result) + ((this.attributesToExtractList == null) ? 0 : this.attributesToExtractList.hashCode());
+		result = (prime * result) + (this.considerBubbling ? 1231 : 1237);
 		result = (prime * result) + ((this.eventsList == null) ? 0 : this.eventsList.hashCode());
 		result = (prime * result) + ((this.selector == null) ? 0 : this.selector.hashCode());
+		result = (prime * result) + ((this.storagePrefix == null) ? 0 : this.storagePrefix.hashCode());
 		return result;
 	}
 
@@ -156,6 +208,9 @@ public class EumDomEventSelector {
 		} else if (!this.attributesToExtractList.equals(other.attributesToExtractList)) {
 			return false;
 		}
+		if (this.considerBubbling != other.considerBubbling) {
+			return false;
+		}
 		if (this.eventsList == null) {
 			if (other.eventsList != null) {
 				return false;
@@ -170,7 +225,15 @@ public class EumDomEventSelector {
 		} else if (!this.selector.equals(other.selector)) {
 			return false;
 		}
+		if (this.storagePrefix == null) {
+			if (other.storagePrefix != null) {
+				return false;
+			}
+		} else if (!this.storagePrefix.equals(other.storagePrefix)) {
+			return false;
+		}
 		return true;
 	}
+
 
 }

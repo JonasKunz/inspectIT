@@ -76,9 +76,19 @@ public class EumDomEventSelectorDialog extends TitleAreaDialog implements IContr
 	private Text attributesText;
 
 	/**
+	 * Holds the storage prefix to prepend to extracted attributes to identify them better.
+	 */
+	private Text storagePrefixText;
+
+	/**
 	 * The checkbox for (un)setting the always-relevant flag.
 	 */
 	private Button alwaysRelevantButton;
+
+	/**
+	 * The checkbox for (un)setting the always-relevant flag.
+	 */
+	private Button considerBubblingButton;
 
 	/**
 	 * Default constructor.
@@ -159,6 +169,8 @@ public class EumDomEventSelectorDialog extends TitleAreaDialog implements IContr
 			selector.setSelector(selectorText.getText());
 			selector.setAttributesToExtractList(attributesText.getText());
 			selector.setAlwaysRelevant(alwaysRelevantButton.getSelection());
+			selector.setConsiderBubbling(considerBubblingButton.getSelection());
+			selector.setStoragePrefix(storagePrefixText.getText());
 		}
 		super.buttonPressed(buttonId);
 	}
@@ -229,11 +241,20 @@ public class EumDomEventSelectorDialog extends TitleAreaDialog implements IContr
 		createInfoLabel(main, "Comma separated list of HTML attributes (e.g. 'id,href'). When a matching event of the specified ones occurs on an element matching the selector,"
 				+ " these attributes will be read from DOM element and stored in the trace.\n This allows for an easy identification of the element.");
 
+		// storage prefix
+		Label storagePrefixLabel = new Label(main, SWT.NONE);
+		storagePrefixLabel.setText("Storage Prefix for selector:");
+		storagePrefixText = new Text(main, SWT.BORDER);
+		storagePrefixText.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+
+		createInfoLabel(main,
+				"The prefix to prepend to extracted attributes whenstoring them in a trace. E.g. given the attribute 'href' and the prefix 'mySelector', the attribute value will be stored under 'mySelector.href'");
+
 		// always-relevant
 		alwaysRelevantButton = new Button(main, SWT.CHECK);
 		alwaysRelevantButton.setSelection(false);
 		alwaysRelevantButton.setText("Always Relevant");
-		alwaysRelevantButton.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false, 2, 1));
+		alwaysRelevantButton.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false, 3, 1));
 
 		// always relevant together with wildcard event are not allowed
 		ValidationControlDecoration<Text> wildcardEventValidationDecoration = new ValidationControlDecoration<Text>(eventsText, this) {
@@ -247,8 +268,11 @@ public class EumDomEventSelectorDialog extends TitleAreaDialog implements IContr
 		wildcardEventValidationDecoration.registerListener(eventsText, SWT.Modify);
 		validationControlDecorations.add(wildcardEventValidationDecoration);
 
-		createInfoLabel(main,
-				"If checked, the specified events on elements matching the select will always be sent back to the CMR, even if they did not trigger any 'relevant' actions like requests.");
+		// consider bubbling
+		considerBubblingButton = new Button(main, SWT.CHECK);
+		considerBubblingButton.setSelection(false);
+		considerBubblingButton.setText("Consider Bubbling");
+		considerBubblingButton.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false, 3, 1));
 
 
 		if (null != selector) {
@@ -256,6 +280,8 @@ public class EumDomEventSelectorDialog extends TitleAreaDialog implements IContr
 			selectorText.setText(selector.getSelector());
 			attributesText.setText(selector.getAttributesToExtractList());
 			alwaysRelevantButton.setSelection(selector.isAlwaysRelevant());
+			considerBubblingButton.setSelection(selector.isConsiderBubbling());
+			storagePrefixText.setText(selector.getStoragePrefix());
 		}
 
 		return main;

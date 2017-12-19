@@ -44,21 +44,33 @@ public class AgentEumDomEventSelector {
 	private boolean alwaysRelevant;
 
 	/**
-	 * @param eventsList
-	 *            see {@link #eventsList}
-	 * @param selector
-	 *            see {@link #selector}
-	 * @param attributesToExtractList
-	 *            see {@link #attributesToExtractList}
-	 * @param alwaysRelevant
-	 *            see {@link #alwaysRelevant}
+	 * If this flag is true, the selector will also be applied on parent elements with the given
+	 * event occurring.
 	 */
-	public AgentEumDomEventSelector(String eventsList, String selector, String attributesToExtractList, boolean alwaysRelevant) {
+	private boolean considerBubbling;
+
+	/**
+	 * Prefix to prepend to attribute names captured when storing them with a trace.
+	 */
+	private String storagePrefix;
+
+
+	/**
+	 * @param eventsList
+	 * @param selector
+	 * @param attributesToExtractList
+	 * @param alwaysRelevant
+	 * @param considerBubbling
+	 * @param storagePrefix
+	 */
+	public AgentEumDomEventSelector(String eventsList, String selector, String attributesToExtractList, boolean alwaysRelevant, boolean considerBubbling, String storagePrefix) {
 		super();
 		this.eventsList = eventsList;
 		this.selector = selector;
 		this.attributesToExtractList = attributesToExtractList;
 		this.alwaysRelevant = alwaysRelevant;
+		this.considerBubbling = considerBubbling;
+		this.storagePrefix = storagePrefix;
 	}
 
 	/**
@@ -144,6 +156,44 @@ public class AgentEumDomEventSelector {
 	}
 
 	/**
+	 * Gets {@link #considerBubbling}.
+	 * 
+	 * @return {@link #considerBubbling}
+	 */
+	public boolean isConsiderBubbling() {
+		return this.considerBubbling;
+	}
+
+	/**
+	 * Sets {@link #considerBubbling}.
+	 * 
+	 * @param considerBubbling
+	 *            New value for {@link #considerBubbling}
+	 */
+	public void setConsiderBubbling(boolean considerBubbling) {
+		this.considerBubbling = considerBubbling;
+	}
+
+	/**
+	 * Gets {@link #storagePrefix}.
+	 * 
+	 * @return {@link #storagePrefix}
+	 */
+	public String getStoragePrefix() {
+		return this.storagePrefix;
+	}
+
+	/**
+	 * Sets {@link #storagePrefix}.
+	 * 
+	 * @param storagePrefix
+	 *            New value for {@link #storagePrefix}
+	 */
+	public void setStoragePrefix(String storagePrefix) {
+		this.storagePrefix = storagePrefix;
+	}
+
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
@@ -152,8 +202,10 @@ public class AgentEumDomEventSelector {
 		int result = 1;
 		result = (prime * result) + (this.alwaysRelevant ? 1231 : 1237);
 		result = (prime * result) + ((this.attributesToExtractList == null) ? 0 : this.attributesToExtractList.hashCode());
+		result = (prime * result) + (this.considerBubbling ? 1231 : 1237);
 		result = (prime * result) + ((this.eventsList == null) ? 0 : this.eventsList.hashCode());
 		result = (prime * result) + ((this.selector == null) ? 0 : this.selector.hashCode());
+		result = (prime * result) + ((this.storagePrefix == null) ? 0 : this.storagePrefix.hashCode());
 		return result;
 	}
 
@@ -182,6 +234,9 @@ public class AgentEumDomEventSelector {
 		} else if (!this.attributesToExtractList.equals(other.attributesToExtractList)) {
 			return false;
 		}
+		if (this.considerBubbling != other.considerBubbling) {
+			return false;
+		}
 		if (this.eventsList == null) {
 			if (other.eventsList != null) {
 				return false;
@@ -196,6 +251,13 @@ public class AgentEumDomEventSelector {
 		} else if (!this.selector.equals(other.selector)) {
 			return false;
 		}
+		if (this.storagePrefix == null) {
+			if (other.storagePrefix != null) {
+				return false;
+			}
+		} else if (!this.storagePrefix.equals(other.storagePrefix)) {
+			return false;
+		}
 		return true;
 	}
 
@@ -205,7 +267,8 @@ public class AgentEumDomEventSelector {
 	@Override
 	public String toString() {
 		return "AgentEumDomEventSelector [eventsList=" + this.eventsList + ", selector=" + this.selector + ", attributesToExtractList=" + this.attributesToExtractList + ", alwaysRelevant="
-				+ this.alwaysRelevant + "]";
+				+ this.alwaysRelevant + ", considerBubbling=" + this.considerBubbling + ", storagePrefix=" + this.storagePrefix + "]";
 	}
+
 
 }

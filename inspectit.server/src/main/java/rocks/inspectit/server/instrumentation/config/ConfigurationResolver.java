@@ -314,7 +314,9 @@ public class ConfigurationResolver {
 				for (EumDomEventSelector sel : selectors) {
 					stringBuilder.append("\n|||-(").append(sel.getEventsList()).append(';')
 					.append(sel.getSelector()).append(';').append(sel.getAttributesToExtractList())
-					.append(";alwaysRelevant:").append(sel.isAlwaysRelevant()).append(')');
+					.append(";alwaysRelevant:").append(sel.isAlwaysRelevant())
+					.append(";bubbling:").append(sel.isConsiderBubbling())
+					.append(";storagePrefix:").append(sel.getStoragePrefix()).append(')');
 
 				}
 			}

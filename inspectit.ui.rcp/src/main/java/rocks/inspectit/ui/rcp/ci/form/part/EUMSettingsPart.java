@@ -446,6 +446,17 @@ public class EUMSettingsPart extends SectionPart implements IPropertyListener {
 			}
 		});
 
+		TableViewerColumn storagePrefixColumn = new TableViewerColumn(selectorsTableViewer, SWT.NONE);
+		storagePrefixColumn.getColumn().setResizable(true);
+		storagePrefixColumn.getColumn().setWidth(150);
+		storagePrefixColumn.getColumn().setText("Storage Prefix");
+		storagePrefixColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(Object element) {
+				return ((EumDomEventSelector) element).getStoragePrefix();
+			}
+		});
+
 		TableViewerColumn relevancyColumn = new TableViewerColumn(selectorsTableViewer, SWT.NONE);
 		relevancyColumn.getColumn().setResizable(false);
 		relevancyColumn.getColumn().setWidth(100);
@@ -469,6 +480,31 @@ public class EUMSettingsPart extends SectionPart implements IPropertyListener {
 			}
 
 		});
+
+		TableViewerColumn considerBubblingColumn = new TableViewerColumn(selectorsTableViewer, SWT.NONE);
+		considerBubblingColumn.getColumn().setResizable(false);
+		considerBubblingColumn.getColumn().setWidth(100);
+		considerBubblingColumn.getColumn().setText("Consider Bubbling");
+		considerBubblingColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(Object element) {
+				return "";
+			}
+
+			/**
+			 * {@inheritDoc}
+			 */
+			@Override
+			public Image getImage(Object element) {
+				if (((EumDomEventSelector) element).isConsiderBubbling()) {
+					return InspectIT.getDefault().getImage(InspectITImages.IMG_CHECKMARK);
+				} else {
+					return null;
+				}
+			}
+
+		});
+
 		selectorsTableViewer.getTable().addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyPressed(KeyEvent e) {

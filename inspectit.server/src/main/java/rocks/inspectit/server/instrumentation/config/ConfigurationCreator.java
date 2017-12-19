@@ -117,7 +117,7 @@ public class ConfigurationCreator {
 		agentEumConf.setRespectDNTHeader(eumConf.isRespectDNTHeader());
 		List<AgentEumDomEventSelector> selectors = new ArrayList<>();
 		eumConf.getEventSelectors().forEach((s) -> selectors.add(
-				new AgentEumDomEventSelector(s.getEventsList(), s.getSelector(), s.getAttributesToExtractList(), s.isAlwaysRelevant())));
+				new AgentEumDomEventSelector(s.getEventsList(), s.getSelector(), s.getAttributesToExtractList(), s.isAlwaysRelevant(), s.isConsiderBubbling(), s.getStoragePrefix())));
 		agentEumConf.setEventSelectors(selectors);
 
 		agentConfiguration.setEumConfig(agentEumConf);

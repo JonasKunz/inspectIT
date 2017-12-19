@@ -11,7 +11,7 @@
 	<xsl:template match="environment/end-user-monitoring-config" priority="1">
 		<xsl:copy>
 			<xsl:next-match/>
-			<eum-dom-event-selector eventsList="*" selector="*" attributesToExtractList="tagName,id" alwaysRelevant="false"/>
+			<eum-dom-event-selector eventsList="*" selector="*" attributesToExtractList="tagName,id" alwaysRelevant="false" considerBubbling="false" storagePrefix=""/>
 			<xsl:apply-templates select="@* | node()" />
 		</xsl:copy>
 	</xsl:template>

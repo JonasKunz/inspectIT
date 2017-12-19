@@ -369,8 +369,8 @@ public class ConfigurationCreatorTest extends TestBase {
 			selB.setAttributesToExtractList("attributeB");
 			selB.setAlwaysRelevant(true);
 
-			AgentEumDomEventSelector refA = new AgentEumDomEventSelector("eventA", "selectorA", "attributeA", false);
-			AgentEumDomEventSelector refB = new AgentEumDomEventSelector("eventB", "selectorB", "attributeB", true);
+			AgentEumDomEventSelector refA = new AgentEumDomEventSelector("eventA", "selectorA", "attributeA", false, false, "");
+			AgentEumDomEventSelector refB = new AgentEumDomEventSelector("eventB", "selectorB", "attributeB", true, false, "");
 
 			when(config.getEventSelectors()).thenReturn(Arrays.asList(selA, selB));
 			when(environment.getEumConfig()).thenReturn(config);

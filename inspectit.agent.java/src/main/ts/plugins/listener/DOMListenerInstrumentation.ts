@@ -18,12 +18,12 @@ namespace DOMListenerInstrumentation {
         initElementSelectors();
         Instrumentation.addListenerInstrumentation({
             shouldInstrument(target, type) {
-                return (isDomElement(target) || target === window || target === document)
+                return (Util.isDomElement(target) || target === window || target === document)
                     && (type in eventDictionary);
             },
             instrument(event, originalCallback, executeOriginalCallback) {
                 // sanity check, do not instrument events which directly happened on window or document
-                if (isDomElement(event.target)) {
+                if (Util.isDomElement(event.target)) {
                     const target = event.target as HTMLElement;
                     const record = new ListenerExecutionRecord();
                     record.functionName = Util.getFunctionName(originalCallback);
@@ -55,7 +55,7 @@ namespace DOMListenerInstrumentation {
         Instrumentation.runWithout( () => {
             for (const event in relevantEvents) {
                 document.addEventListener(event, (eventObj) => {
-                    if (isDomElement(eventObj.target)) {
+                    if (Util.isDomElement(eventObj.target)) {
                         getOrCreateEventRecord(eventObj);
                     }
                 }, true);
@@ -90,14 +90,16 @@ namespace DOMListenerInstrumentation {
 
             let isRelevant: boolean = false;
             for (const selector of (eventSelectors[eventName] || [])) {
-                if (selector.matchesElement(event.target as Element)) {
-                    selector.extractAttributes(event.target as Element, record.elementInfo);
+                const match = selector.matchesElement(event.target as Element);
+                if (match) {
+                    selector.extractAttributes(match, record.elementInfo);
                     isRelevant = isRelevant || selector.markAlwaysAsRelevant;
                 }
             }
             for (const selector of (eventSelectors["*"] || [])) {
-                if (selector.matchesElement(event.target as Element)) {
-                    selector.extractAttributes(event.target as Element, record.elementInfo);
+                const match = selector.matchesElement(event.target as Element);
+                if (match) {
+                    selector.extractAttributes(match, record.elementInfo);
                 }
             }
             if (isRelevant) {
@@ -108,14 +110,6 @@ namespace DOMListenerInstrumentation {
             }
             return record;
         }
-    }
-
-    /**
-     * Taken from http://stackoverflow.com/questions/384286/javascript-isdom-how-do-you-check-if-a-javascript-object-is-a-dom-object.
-     */
-    function isDomElement(o: any) {
-        return (typeof HTMLElement === "object" ? o instanceof HTMLElement : // DOM2
-            o && typeof o === "object" && o !== null && o.nodeType === 1 && typeof o.nodeName === "string");
     }
 
     /*tslint:disable object-literal-key-quotes*/

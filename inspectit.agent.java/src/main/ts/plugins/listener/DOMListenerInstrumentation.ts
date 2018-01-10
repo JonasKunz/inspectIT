@@ -70,7 +70,7 @@ namespace DOMListenerInstrumentation {
         } else {
             record = new DomEventRecord();
             if (event.timeStamp) {
-                // event.tiemStamp is sometime relative to navigationStart and sometime to the epoche
+                // event.tiemStamp is sometimes relative to navigationStart and sometimes to the epoche
                 // to differentiate we compare thetimestamp with the epoche time from january 1st, 2000
                 const epocheTimeStamp2000 = 946684800;
                 if (event.timeStamp < epocheTimeStamp2000) {
@@ -90,14 +90,14 @@ namespace DOMListenerInstrumentation {
 
             let isRelevant: boolean = false;
             for (const selector of (eventSelectors[eventName] || [])) {
-                const match = selector.matchesElement(event.target as Element);
+                const match = selector.findMatch(event.target as Element);
                 if (match) {
                     selector.extractAttributes(match, record.elementInfo);
                     isRelevant = isRelevant || selector.markAlwaysAsRelevant;
                 }
             }
             for (const selector of (eventSelectors["*"] || [])) {
-                const match = selector.matchesElement(event.target as Element);
+                const match = selector.findMatch(event.target as Element);
                 if (match) {
                     selector.extractAttributes(match, record.elementInfo);
                 }

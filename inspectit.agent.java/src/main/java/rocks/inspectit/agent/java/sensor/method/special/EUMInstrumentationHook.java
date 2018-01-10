@@ -335,8 +335,7 @@ public class EUMInstrumentationHook implements ISpecialHook {
 					selectorsArray.append("\",\"").append(StringEscapeUtils.escapeJavaScript(sel.getSelector()));
 					selectorsArray.append("\",\"").append(StringEscapeUtils.escapeJavaScript(sel.getAttributesToExtractList()));
 					selectorsArray.append("\",").append(sel.isAlwaysRelevant());
-					selectorsArray.append(",").append(sel.isConsiderBubbling());
-					selectorsArray.append(",\"").append(sel.getStoragePrefix()).append("\"]");
+					selectorsArray.append(',').append(sel.getAncestorLevelsToCheck()).append(']');
 				}
 				selectorsArray.append(']');
 				scriptTags.setSetting("domEventSelectors", selectorsArray.toString());

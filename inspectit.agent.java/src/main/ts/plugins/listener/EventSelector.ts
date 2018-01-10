@@ -1,60 +1,74 @@
+interface IAttribDescriptor {
+    name: string;
+    storagePrefix: string | null;
+}
+
 class EventSelector {
 
     public readonly events: string[];
     public readonly markAlwaysAsRelevant: boolean;
-    public readonly considerBubbling: boolean;
+    public readonly ancestorLevelsToCheck: number;
 
     private readonly storagePrefix: string;
     private readonly selector: string;
-    private readonly attributesToExtract: string[];
+    private readonly attributesToExtract: IAttribDescriptor[];
 
-    public constructor(config: [string, string, string, boolean, boolean, string]) {
+    public constructor(config: [string, string, string, boolean, number]) {
         this.events = config[0].split(",");
         this.selector = config[1];
-        this.attributesToExtract = config[2].split(",");
+        this.attributesToExtract = this.parseAttribDescriptors(config[2]);
         this.markAlwaysAsRelevant = config[3];
-        this.considerBubbling = config[4];
-        this.storagePrefix = config[5];
+        this.ancestorLevelsToCheck = config[4];
     }
 
-    public matchesElement(elem: Element): Element | null {
-
-        if (Util.elementMatchesSelector(elem, this.selector)) {
-            return elem;
-        } else if (this.considerBubbling) {
-            let current: Node | null = elem.parentElement;
-            while (current != null) {
-                if (Util.isDomElement(current) && Util.elementMatchesSelector(current as Element, this.selector)) {
-                    return current as Element;
-                }
-                current = current.parentNode;
+    public findMatch(mostInnerElem: Node): Element | null {
+        let currentAncestorLevel = 0;
+        let currentElem: Node | null = mostInnerElem;
+        do {
+            if (Util.isDomElement(currentElem) && Util.elementMatchesSelector(currentElem as Element, this.selector)) {
+                return currentElem as Element;
             }
-        }
+            currentAncestorLevel++;
+            currentElem = currentElem.parentNode;
+        } while (currentElem != null && (currentAncestorLevel <= this.ancestorLevelsToCheck || this.ancestorLevelsToCheck === -1));
         return null;
     }
 
     public extractAttributes(elem: Element, storage: IDictionary<string>) {
-        for (const attributeName of this.attributesToExtract) {
-            if (!(attributeName in storage)) {
-                const storageName = this.storagePrefix ? this.storagePrefix + "." + attributeName : attributeName;
-                if (attributeName === "$label") {
+        for (const attribDescr of this.attributesToExtract) {
+            const fullName = (attribDescr.storagePrefix ? attribDescr.storagePrefix + "." : "") + attribDescr.name;
+            if (!(fullName in storage)) {
+                if (attribDescr.name === "$label") {
                     const label = this.getLabelText(elem);
                     if (label) {
-                        storage[storageName] = label;
+                        storage[fullName] = label;
                     }
                 } else {
-                    if (elem.hasAttribute(attributeName)) {
-                        let htmlAttr = elem.getAttribute(attributeName);
+                    if (elem.hasAttribute(attribDescr.name)) {
+                        let htmlAttr = elem.getAttribute(attribDescr.name);
                         if (htmlAttr == null) {
                             htmlAttr = "";
                         }
-                        storage[storageName] = htmlAttr.toString();
-                    } else if ((elem as any)[attributeName] !== undefined && (elem as any)[attributeName] !== "") {
-                        storage[storageName] = (elem as any)[attributeName].toString();
+                        storage[fullName] = htmlAttr.toString();
+                    } else if ((elem as any)[attribDescr.name] !== undefined && (elem as any)[attribDescr.name] !== "") {
+                        storage[fullName] = (elem as any)[attribDescr.name].toString();
                     }
                 }
             }
         }
+    }
+
+    private parseAttribDescriptors(commaSeparatedList: string) {
+        const result: IAttribDescriptor[] = [];
+        for (const encoded of commaSeparatedList.split(",")) {
+            const splitted = encoded.split(".");
+            if (splitted.length === 1) {
+                result.push({ name : splitted[0], storagePrefix : null});
+            } else {
+                result.push({ name : splitted[1], storagePrefix : splitted[0]});
+            }
+        }
+        return result;
     }
 
     private getLabelText(elem: any) {

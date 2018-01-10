@@ -426,7 +426,7 @@ public class EUMSettingsPart extends SectionPart implements IPropertyListener {
 
 		TableViewerColumn selectorColumn = new TableViewerColumn(selectorsTableViewer, SWT.NONE);
 		selectorColumn.getColumn().setResizable(true);
-		selectorColumn.getColumn().setWidth(200);
+		selectorColumn.getColumn().setWidth(150);
 		selectorColumn.getColumn().setText("CSS-Selector");
 		selectorColumn.setLabelProvider(new ColumnLabelProvider() {
 			@Override
@@ -446,14 +446,14 @@ public class EUMSettingsPart extends SectionPart implements IPropertyListener {
 			}
 		});
 
-		TableViewerColumn storagePrefixColumn = new TableViewerColumn(selectorsTableViewer, SWT.NONE);
-		storagePrefixColumn.getColumn().setResizable(true);
-		storagePrefixColumn.getColumn().setWidth(150);
-		storagePrefixColumn.getColumn().setText("Storage Prefix");
-		storagePrefixColumn.setLabelProvider(new ColumnLabelProvider() {
+		TableViewerColumn ancestorLevelsColumn = new TableViewerColumn(selectorsTableViewer, SWT.NONE);
+		ancestorLevelsColumn.getColumn().setResizable(true);
+		ancestorLevelsColumn.getColumn().setWidth(100);
+		ancestorLevelsColumn.getColumn().setText("Ancestor Levels");
+		ancestorLevelsColumn.setLabelProvider(new ColumnLabelProvider() {
 			@Override
 			public String getText(Object element) {
-				return ((EumDomEventSelector) element).getStoragePrefix();
+				return String.valueOf(((EumDomEventSelector) element).getAncestorLevelsToCheck());
 			}
 		});
 
@@ -473,30 +473,6 @@ public class EUMSettingsPart extends SectionPart implements IPropertyListener {
 			@Override
 			public Image getImage(Object element) {
 				if (((EumDomEventSelector) element).isAlwaysRelevant()) {
-					return InspectIT.getDefault().getImage(InspectITImages.IMG_CHECKMARK);
-				} else {
-					return null;
-				}
-			}
-
-		});
-
-		TableViewerColumn considerBubblingColumn = new TableViewerColumn(selectorsTableViewer, SWT.NONE);
-		considerBubblingColumn.getColumn().setResizable(false);
-		considerBubblingColumn.getColumn().setWidth(100);
-		considerBubblingColumn.getColumn().setText("Consider Bubbling");
-		considerBubblingColumn.setLabelProvider(new ColumnLabelProvider() {
-			@Override
-			public String getText(Object element) {
-				return "";
-			}
-
-			/**
-			 * {@inheritDoc}
-			 */
-			@Override
-			public Image getImage(Object element) {
-				if (((EumDomEventSelector) element).isConsiderBubbling()) {
 					return InspectIT.getDefault().getImage(InspectITImages.IMG_CHECKMARK);
 				} else {
 					return null;

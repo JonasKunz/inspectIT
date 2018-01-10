@@ -42,16 +42,11 @@ public class EumDomEventSelector {
 	private boolean alwaysRelevant;
 
 	/**
-	 * See {@link AgentEumDomEventSelector#considerBubbling}.
+	 * See {@link AgentEumDomEventSelector#ancestorLevelsToCheck}.
 	 */
-	@XmlAttribute(name = "considerBubbling", required = true)
-	private boolean considerBubbling;
+	@XmlAttribute(name = "ancestorLevelsToCheck", required = true)
+	private int ancestorLevelsToCheck;
 
-	/**
-	 * See {@link AgentEumDomEventSelector#storagePrefix}.
-	 */
-	@XmlAttribute(name = "storagePrefix", required = true)
-	private String storagePrefix;
 
 	/**
 	 * Gets {@link #eventsList}.
@@ -130,41 +125,22 @@ public class EumDomEventSelector {
 	}
 
 	/**
-	 * Gets {@link #considerBubbling}.
-	 *
-	 * @return {@link #considerBubbling}
+	 * Gets {@link #ancestorLevelsToCheck}.
+	 * 
+	 * @return {@link #ancestorLevelsToCheck}
 	 */
-	public boolean isConsiderBubbling() {
-		return this.considerBubbling;
+	public int getAncestorLevelsToCheck() {
+		return this.ancestorLevelsToCheck;
 	}
 
 	/**
-	 * Sets {@link #considerBubbling}.
-	 *
-	 * @param considerBubbling
-	 *            New value for {@link #considerBubbling}
+	 * Sets {@link #ancestorLevelsToCheck}.
+	 * 
+	 * @param ancestorLevelsToCheck
+	 *            New value for {@link #ancestorLevelsToCheck}
 	 */
-	public void setConsiderBubbling(boolean considerBubbling) {
-		this.considerBubbling = considerBubbling;
-	}
-
-	/**
-	 * Gets {@link #storagePrefix}.
-	 *
-	 * @return {@link #storagePrefix}
-	 */
-	public String getStoragePrefix() {
-		return this.storagePrefix;
-	}
-
-	/**
-	 * Sets {@link #storagePrefix}.
-	 *
-	 * @param storagePrefix
-	 *            New value for {@link #storagePrefix}
-	 */
-	public void setStoragePrefix(String storagePrefix) {
-		this.storagePrefix = storagePrefix;
+	public void setAncestorLevelsToCheck(int ancestorLevelsToCheck) {
+		this.ancestorLevelsToCheck = ancestorLevelsToCheck;
 	}
 
 	/**
@@ -175,11 +151,10 @@ public class EumDomEventSelector {
 		final int prime = 31;
 		int result = 1;
 		result = (prime * result) + (this.alwaysRelevant ? 1231 : 1237);
+		result = (prime * result) + this.ancestorLevelsToCheck;
 		result = (prime * result) + ((this.attributesToExtractList == null) ? 0 : this.attributesToExtractList.hashCode());
-		result = (prime * result) + (this.considerBubbling ? 1231 : 1237);
 		result = (prime * result) + ((this.eventsList == null) ? 0 : this.eventsList.hashCode());
 		result = (prime * result) + ((this.selector == null) ? 0 : this.selector.hashCode());
-		result = (prime * result) + ((this.storagePrefix == null) ? 0 : this.storagePrefix.hashCode());
 		return result;
 	}
 
@@ -201,14 +176,14 @@ public class EumDomEventSelector {
 		if (this.alwaysRelevant != other.alwaysRelevant) {
 			return false;
 		}
+		if (this.ancestorLevelsToCheck != other.ancestorLevelsToCheck) {
+			return false;
+		}
 		if (this.attributesToExtractList == null) {
 			if (other.attributesToExtractList != null) {
 				return false;
 			}
 		} else if (!this.attributesToExtractList.equals(other.attributesToExtractList)) {
-			return false;
-		}
-		if (this.considerBubbling != other.considerBubbling) {
 			return false;
 		}
 		if (this.eventsList == null) {
@@ -225,15 +200,7 @@ public class EumDomEventSelector {
 		} else if (!this.selector.equals(other.selector)) {
 			return false;
 		}
-		if (this.storagePrefix == null) {
-			if (other.storagePrefix != null) {
-				return false;
-			}
-		} else if (!this.storagePrefix.equals(other.storagePrefix)) {
-			return false;
-		}
 		return true;
 	}
-
 
 }

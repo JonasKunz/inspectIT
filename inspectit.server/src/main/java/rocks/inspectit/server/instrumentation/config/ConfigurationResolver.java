@@ -315,9 +315,7 @@ public class ConfigurationResolver {
 					stringBuilder.append("\n|||-(").append(sel.getEventsList()).append(';')
 					.append(sel.getSelector()).append(';').append(sel.getAttributesToExtractList())
 					.append(";alwaysRelevant:").append(sel.isAlwaysRelevant())
-					.append(";bubbling:").append(sel.isConsiderBubbling())
-					.append(";storagePrefix:").append(sel.getStoragePrefix()).append(')');
-
+					.append(";ancestorLevelsToCheck:").append(sel.getAncestorLevelsToCheck()).append(')');
 				}
 			}
 		}

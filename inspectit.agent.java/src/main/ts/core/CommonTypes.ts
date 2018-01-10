@@ -36,7 +36,7 @@ interface IAgentConfiguration {
     relevancyThreshold: number;
     allowListenerInstrumentation: boolean;
     respectDNT: boolean;
-    domEventSelectors?: Array<[string, string, string, boolean, boolean, string]>;
+    domEventSelectors?: Array<[string, string, string, boolean, number]>;
     traceid?: IdNumber;
 }
 

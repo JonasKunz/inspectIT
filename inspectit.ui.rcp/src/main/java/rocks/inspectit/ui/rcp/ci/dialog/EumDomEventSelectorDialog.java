@@ -40,10 +40,17 @@ public class EumDomEventSelectorDialog extends TitleAreaDialog implements IContr
 
 	/**
 	 * Pattern for validating the attributes-list field. <br>
+	 * The list must contain html or JS attributes, or special attributes with a dollar sign, like
+	 * $label. In addition, a naming prefix maybe prefixed separated by a dot.
+	 */
+	private static final Pattern ATTRIBUTES_PATTERN = Pattern.compile("([a-zA-Z0-9]+\\.)?\\$?[a-zA-Z0-9\\-]+(,([a-zA-Z0-9]+\\.)?\\$?[a-zA-Z0-9\\-]+)*");
+
+	/**
+	 * Pattern for validating the attributes-list field. <br>
 	 * The list must contiant html or JS attributes, or special attributes iwth a dollar sign, like
 	 * $label.
 	 */
-	private static final Pattern ATTRIBUTES_PATTERN = Pattern.compile("\\$?[a-zA-Z0-9]+(,\\$?[a-zA-Z0-9]+)*");
+	private static final Pattern ANCESTORS_PATTERN = Pattern.compile("(-1)|([0-9]+)");
 
 	/**
 	 * The selector currently being modified.
@@ -76,19 +83,14 @@ public class EumDomEventSelectorDialog extends TitleAreaDialog implements IContr
 	private Text attributesText;
 
 	/**
-	 * Holds the storage prefix to prepend to extracted attributes to identify them better.
+	 * Holds the number of ancestor levels to check for this selector.
 	 */
-	private Text storagePrefixText;
+	private Text ancestorLevelsToCheckText;
 
 	/**
 	 * The checkbox for (un)setting the always-relevant flag.
 	 */
 	private Button alwaysRelevantButton;
-
-	/**
-	 * The checkbox for (un)setting the always-relevant flag.
-	 */
-	private Button considerBubblingButton;
 
 	/**
 	 * Default constructor.
@@ -169,8 +171,7 @@ public class EumDomEventSelectorDialog extends TitleAreaDialog implements IContr
 			selector.setSelector(selectorText.getText());
 			selector.setAttributesToExtractList(attributesText.getText());
 			selector.setAlwaysRelevant(alwaysRelevantButton.getSelection());
-			selector.setConsiderBubbling(considerBubblingButton.getSelection());
-			selector.setStoragePrefix(storagePrefixText.getText());
+			selector.setAncestorLevelsToCheck(Integer.parseInt(ancestorLevelsToCheckText.getText()));
 		}
 		super.buttonPressed(buttonId);
 	}
@@ -239,16 +240,28 @@ public class EumDomEventSelectorDialog extends TitleAreaDialog implements IContr
 		validationControlDecorations.add(attributesValidationDecoration);
 
 		createInfoLabel(main, "Comma separated list of HTML attributes (e.g. 'id,href'). When a matching event of the specified ones occurs on an element matching the selector,"
-				+ " these attributes will be read from DOM element and stored in the trace.\n This allows for an easy identification of the element.");
+				+ " these attributes will be read from DOM element and stored in the trace.\n This allows for an easy identification of the element. A name prefix maybe added with a dot as separator.");
 
-		// storage prefix
-		Label storagePrefixLabel = new Label(main, SWT.NONE);
-		storagePrefixLabel.setText("Storage Prefix for selector:");
-		storagePrefixText = new Text(main, SWT.BORDER);
-		storagePrefixText.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+		// ancestor levels to check
+		Label ancestorLevelsLabel = new Label(main, SWT.NONE);
+		ancestorLevelsLabel.setText("Levels of ancestors to check:");
+		ancestorLevelsToCheckText = new Text(main, SWT.BORDER);
+		ancestorLevelsToCheckText.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 
 		createInfoLabel(main,
-				"The prefix to prepend to extracted attributes whenstoring them in a trace. E.g. given the attribute 'href' and the prefix 'mySelector', the attribute value will be stored under 'mySelector.href'");
+				"When an event occurs, the CSS matching starts at the most inner element in the dom tree where the event occured. \n"
+						+ "This options how many levels of ancestors of this element are checked until a match is found.\n"
+						+ "A value of 0 means no ancestors are considered, 1 means only the direct parent ischecked, ...\n"
+						+ "The special value '-1' means that all ancestors up to the root are checked until a match is found.");
+		ValidationControlDecoration<Text> ancestorLevelsValidationDecoration = new ValidationControlDecoration<Text>(ancestorLevelsToCheckText, null, this) {
+			@Override
+			protected boolean validate(Text control) {
+				return ANCESTORS_PATTERN.matcher(ancestorLevelsToCheckText.getText()).matches();
+			}
+		};
+		ancestorLevelsValidationDecoration.setDescriptionText("This field must contain a numeric value which is either -1 or zero and greater.");
+		ancestorLevelsValidationDecoration.registerListener(SWT.Modify);
+		validationControlDecorations.add(ancestorLevelsValidationDecoration);
 
 		// always-relevant
 		alwaysRelevantButton = new Button(main, SWT.CHECK);
@@ -269,10 +282,6 @@ public class EumDomEventSelectorDialog extends TitleAreaDialog implements IContr
 		validationControlDecorations.add(wildcardEventValidationDecoration);
 
 		// consider bubbling
-		considerBubblingButton = new Button(main, SWT.CHECK);
-		considerBubblingButton.setSelection(false);
-		considerBubblingButton.setText("Consider Bubbling");
-		considerBubblingButton.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false, 3, 1));
 
 
 		if (null != selector) {
@@ -280,8 +289,7 @@ public class EumDomEventSelectorDialog extends TitleAreaDialog implements IContr
 			selectorText.setText(selector.getSelector());
 			attributesText.setText(selector.getAttributesToExtractList());
 			alwaysRelevantButton.setSelection(selector.isAlwaysRelevant());
-			considerBubblingButton.setSelection(selector.isConsiderBubbling());
-			storagePrefixText.setText(selector.getStoragePrefix());
+			ancestorLevelsToCheckText.setText(String.valueOf(selector.getAncestorLevelsToCheck()));
 		}
 
 		return main;

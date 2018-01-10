@@ -22,17 +22,19 @@ public class AgentEumDomEventSelector {
 	private String selector;
 
 	/**
-	 * A comma-separated list of attributes which wil lbe extracted form the dom element on which a
-	 * monitored event occured. The events are tried to be extracted in the following order form the
-	 * following sources:
+	 * A comma-separated list of attributes which will be extracted form the dom element on which a
+	 * monitored event occurred. The events are tried to be extracted in the following order form
+	 * the following sources:
 	 * <ol>
 	 * <li>From the HTML attributes, like 'href' or 'id'</li>
 	 * <li>From the javaScript-element attributes, like 'tagName'</li>
 	 * </ol>
 	 * In addition, the implementation provides special attributes starting with a dollar sign, like
 	 * "$label". These attributes have a custom implementation on how they are queried. The $label
-	 * attribute for example is querried by searching the surrounding DOM for a label which belongs
-	 * to the target element.
+	 * attribute for example is queried by searching the surrounding DOM for a label which belongs
+	 * to the target element. In order to avoid naming conflicts with attributes extracted from
+	 * ancestors, a storage name may be prefixed with a dot. E.g. "myElement.id" will extract the id
+	 * attribute and will store it as "myElement.id" tag.
 	 */
 	private String attributesToExtractList;
 
@@ -44,33 +46,19 @@ public class AgentEumDomEventSelector {
 	private boolean alwaysRelevant;
 
 	/**
-	 * If this flag is true, the selector will also be applied on parent elements with the given
-	 * event occurring.
+	 * Defines if this selector is not only applied on the most inner element on which the event
+	 * occurred, but how many ancestors of it should be checked. A value of0 indicates that only the
+	 * element itself is considered, a value of -1 means that all ancesotrs up to root are checked.
 	 */
-	private boolean considerBubbling;
+	private int ancestorLevelsToCheck;
 
-	/**
-	 * Prefix to prepend to attribute names captured when storing them with a trace.
-	 */
-	private String storagePrefix;
-
-
-	/**
-	 * @param eventsList
-	 * @param selector
-	 * @param attributesToExtractList
-	 * @param alwaysRelevant
-	 * @param considerBubbling
-	 * @param storagePrefix
-	 */
-	public AgentEumDomEventSelector(String eventsList, String selector, String attributesToExtractList, boolean alwaysRelevant, boolean considerBubbling, String storagePrefix) {
+	public AgentEumDomEventSelector(String eventsList, String selector, String attributesToExtractList, boolean alwaysRelevant, int ancestorLevelsToCheck) {
 		super();
 		this.eventsList = eventsList;
 		this.selector = selector;
 		this.attributesToExtractList = attributesToExtractList;
 		this.alwaysRelevant = alwaysRelevant;
-		this.considerBubbling = considerBubbling;
-		this.storagePrefix = storagePrefix;
+		this.ancestorLevelsToCheck = ancestorLevelsToCheck;
 	}
 
 	/**
@@ -156,41 +144,22 @@ public class AgentEumDomEventSelector {
 	}
 
 	/**
-	 * Gets {@link #considerBubbling}.
+	 * Gets {@link #ancestorLevelsToCheck}.
 	 * 
-	 * @return {@link #considerBubbling}
+	 * @return {@link #ancestorLevelsToCheck}
 	 */
-	public boolean isConsiderBubbling() {
-		return this.considerBubbling;
+	public int getAncestorLevelsToCheck() {
+		return this.ancestorLevelsToCheck;
 	}
 
 	/**
-	 * Sets {@link #considerBubbling}.
+	 * Sets {@link #ancestorLevelsToCheck}.
 	 * 
-	 * @param considerBubbling
-	 *            New value for {@link #considerBubbling}
+	 * @param ancestorLevelsToCheck
+	 *            New value for {@link #ancestorLevelsToCheck}
 	 */
-	public void setConsiderBubbling(boolean considerBubbling) {
-		this.considerBubbling = considerBubbling;
-	}
-
-	/**
-	 * Gets {@link #storagePrefix}.
-	 * 
-	 * @return {@link #storagePrefix}
-	 */
-	public String getStoragePrefix() {
-		return this.storagePrefix;
-	}
-
-	/**
-	 * Sets {@link #storagePrefix}.
-	 * 
-	 * @param storagePrefix
-	 *            New value for {@link #storagePrefix}
-	 */
-	public void setStoragePrefix(String storagePrefix) {
-		this.storagePrefix = storagePrefix;
+	public void setAncestorLevelsToCheck(int ancestorLevelsToCheck) {
+		this.ancestorLevelsToCheck = ancestorLevelsToCheck;
 	}
 
 	/**
@@ -201,11 +170,10 @@ public class AgentEumDomEventSelector {
 		final int prime = 31;
 		int result = 1;
 		result = (prime * result) + (this.alwaysRelevant ? 1231 : 1237);
+		result = (prime * result) + this.ancestorLevelsToCheck;
 		result = (prime * result) + ((this.attributesToExtractList == null) ? 0 : this.attributesToExtractList.hashCode());
-		result = (prime * result) + (this.considerBubbling ? 1231 : 1237);
 		result = (prime * result) + ((this.eventsList == null) ? 0 : this.eventsList.hashCode());
 		result = (prime * result) + ((this.selector == null) ? 0 : this.selector.hashCode());
-		result = (prime * result) + ((this.storagePrefix == null) ? 0 : this.storagePrefix.hashCode());
 		return result;
 	}
 
@@ -227,14 +195,14 @@ public class AgentEumDomEventSelector {
 		if (this.alwaysRelevant != other.alwaysRelevant) {
 			return false;
 		}
+		if (this.ancestorLevelsToCheck != other.ancestorLevelsToCheck) {
+			return false;
+		}
 		if (this.attributesToExtractList == null) {
 			if (other.attributesToExtractList != null) {
 				return false;
 			}
 		} else if (!this.attributesToExtractList.equals(other.attributesToExtractList)) {
-			return false;
-		}
-		if (this.considerBubbling != other.considerBubbling) {
 			return false;
 		}
 		if (this.eventsList == null) {
@@ -251,13 +219,6 @@ public class AgentEumDomEventSelector {
 		} else if (!this.selector.equals(other.selector)) {
 			return false;
 		}
-		if (this.storagePrefix == null) {
-			if (other.storagePrefix != null) {
-				return false;
-			}
-		} else if (!this.storagePrefix.equals(other.storagePrefix)) {
-			return false;
-		}
 		return true;
 	}
 
@@ -267,8 +228,7 @@ public class AgentEumDomEventSelector {
 	@Override
 	public String toString() {
 		return "AgentEumDomEventSelector [eventsList=" + this.eventsList + ", selector=" + this.selector + ", attributesToExtractList=" + this.attributesToExtractList + ", alwaysRelevant="
-				+ this.alwaysRelevant + ", considerBubbling=" + this.considerBubbling + ", storagePrefix=" + this.storagePrefix + "]";
+				+ this.alwaysRelevant + ", ancestorLevelsToCheck=" + this.ancestorLevelsToCheck + "]";
 	}
-
 
 }

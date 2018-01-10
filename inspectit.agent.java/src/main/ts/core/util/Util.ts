@@ -66,7 +66,11 @@ namespace Util {
         Element.prototype.webkitMatchesSelector || function () { return false; };
 
     export function elementMatchesSelector(element: Element, selector: string): boolean {
-        return matchesFunc.call(element, selector);
+        try {
+            return matchesFunc.call(element, selector);
+        } catch (e) {
+            return false;
+        }
     }
 
     /**

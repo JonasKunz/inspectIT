@@ -581,6 +581,7 @@
     <xs:attribute name="selector" type="xs:string" use="required"/>
     <xs:attribute name="attributesToExtractList" type="xs:string" use="required"/>
     <xs:attribute name="alwaysRelevant" type="xs:boolean" use="required"/>
+    <xs:attribute name="ancestorLevelsToCheck" type="xs:int" use="required"/>
   </xs:complexType>
 
   <xs:complexType name="abstractPlatformSensorConfig" abstract="true">

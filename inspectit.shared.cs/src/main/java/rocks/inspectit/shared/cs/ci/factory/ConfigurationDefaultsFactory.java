@@ -126,8 +126,7 @@ public final class ConfigurationDefaultsFactory {
 		sel.setSelector("*");
 		sel.setAttributesToExtractList("tagName,id");
 		sel.setAlwaysRelevant(false);
-		sel.setConsiderBubbling(false);
-		sel.setStoragePrefix("");
+		sel.setAncestorLevelsToCheck(0);
 		defaultConf.setEventSelectors(Arrays.asList(sel));
 		return defaultConf;
 	}

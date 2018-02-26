@@ -141,6 +141,7 @@ public class CassandraDaoTest extends TestBase {
 			ResultSet res = Mockito.mock(ResultSet.class);
 			ResultSetFuture rsfut = mock(ResultSetFuture.class);
 			when(rsfut.get()).thenReturn(res);
+			when(rsfut.isDone()).thenReturn(true);
 			when(session.executeAsync(any(Statement.class))).thenReturn(rsfut);
 			Mockito.doAnswer(invocation -> {
 				((Runnable) invocation.getArguments()[0]).run();
@@ -163,6 +164,7 @@ public class CassandraDaoTest extends TestBase {
 			IOException myException = new IOException();
 			ResultSetFuture rsfut = mock(ResultSetFuture.class);
 			when(rsfut.get()).thenThrow(new ExecutionException(myException));
+			when(rsfut.isDone()).thenReturn(true);
 			when(session.executeAsync(any(Statement.class))).thenReturn(rsfut);
 			Mockito.doAnswer(invocation -> {
 				((Runnable) invocation.getArguments()[0]).run();

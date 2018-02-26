@@ -243,7 +243,7 @@ dependencies {
 		'javax.activation:activation:1.1.1',
 		'javax.mail:mail:1.4',
 		
-		'com.datastax.cassandra:cassandra-driver-core:3.1.4'
+		'com.datastax.cassandra:cassandra-driver-core:3.4.0'
 	)
 	
 	/** inspectit.server.diagnosis */
